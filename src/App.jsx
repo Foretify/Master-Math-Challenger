@@ -788,6 +788,7 @@ function App() {
                           type="button"
                           className="number-pad-key"
                           onClick={() => appendAnswerDigit(digit)}
+                          aria-label={`Enter digit ${digit}`}
                         >
                           {digit}
                         </button>
@@ -803,7 +804,7 @@ function App() {
                     onClick={removeLastAnswerDigit}
                     aria-label="Delete last digit"
                   >
-                    ⌫
+                    Back
                   </button>
                   <button
                     type="button"
