@@ -805,7 +805,12 @@ function App() {
                   >
                     ⌫
                   </button>
-                  <button type="button" className="number-pad-key" onClick={clearAnswer}>
+                  <button
+                    type="button"
+                    className="number-pad-key"
+                    onClick={clearAnswer}
+                    aria-label="Clear answer"
+                  >
                     Clear
                   </button>
                 </div>
