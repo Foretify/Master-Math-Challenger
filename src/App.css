@@ -107,8 +107,14 @@ fieldset {
   font-weight: 700;
 }
 
-.number-pad-key-wide {
-  grid-column: span 2;
+.number-pad-spacer {
+  visibility: hidden;
+}
+
+.number-pad-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
 .error {

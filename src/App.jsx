@@ -780,28 +780,32 @@ function App() {
                   />
                 </label>
                 <div className="number-pad" aria-label="Number pad">
-                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'].map((digit) => (
-                    <button
-                      key={digit}
-                      type="button"
-                      className="number-pad-key"
-                      onClick={() => appendAnswerDigit(digit)}
-                    >
-                      {digit}
-                    </button>
-                  ))}
+                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null].map(
+                    (digit, index) =>
+                      digit ? (
+                        <button
+                          key={digit}
+                          type="button"
+                          className="number-pad-key"
+                          onClick={() => appendAnswerDigit(digit)}
+                        >
+                          {digit}
+                        </button>
+                      ) : (
+                        <div key={`spacer-${index}`} className="number-pad-spacer" aria-hidden="true" />
+                      ),
+                  )}
+                </div>
+                <div className="number-pad-actions">
                   <button
                     type="button"
-                    className="number-pad-key number-pad-key-wide"
+                    className="number-pad-key"
                     onClick={removeLastAnswerDigit}
+                    aria-label="Delete last digit"
                   >
                     ⌫
                   </button>
-                  <button
-                    type="button"
-                    className="number-pad-key number-pad-key-wide"
-                    onClick={clearAnswer}
-                  >
+                  <button type="button" className="number-pad-key" onClick={clearAnswer}>
                     Clear
                   </button>
                 </div>
