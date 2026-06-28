@@ -315,6 +315,36 @@ function App() {
     })
   }
 
+  function appendAnswerDigit(digit) {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return { ...previous, answer: `${previous.answer}${digit}` }
+    })
+  }
+
+  function clearAnswer() {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return { ...previous, answer: '' }
+    })
+  }
+
+  function removeLastAnswerDigit() {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return { ...previous, answer: previous.answer.slice(0, -1) }
+    })
+  }
+
   function createGroup(event) {
     event.preventDefault()
     const name = groupName.trim()
@@ -745,9 +775,36 @@ function App() {
                     onChange={(event) =>
                       setSessionState({ ...sessionState, answer: event.target.value })
                     }
+                    inputMode="numeric"
                     autoFocus
                   />
                 </label>
+                <div className="number-pad" aria-label="Number pad">
+                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', '0'].map((digit) => (
+                    <button
+                      key={digit}
+                      type="button"
+                      className="number-pad-key"
+                      onClick={() => appendAnswerDigit(digit)}
+                    >
+                      {digit}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="number-pad-key number-pad-key-wide"
+                    onClick={removeLastAnswerDigit}
+                  >
+                    ⌫
+                  </button>
+                  <button
+                    type="button"
+                    className="number-pad-key number-pad-key-wide"
+                    onClick={clearAnswer}
+                  >
+                    Clear
+                  </button>
+                </div>
                 <p>Question timer: {formatMs(timerNowMs - sessionState.questionStartedAt)}</p>
                 <button type="submit">Submit answer</button>
               </form>

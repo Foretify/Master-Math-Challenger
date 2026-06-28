@@ -95,6 +95,22 @@ fieldset {
   font-weight: 700;
 }
 
+.number-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.number-pad-key {
+  min-height: 2.75rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.number-pad-key-wide {
+  grid-column: span 2;
+}
+
 .error {
   color: #b91c1c;
 }
@@ -127,4 +143,11 @@ td {
 
 .chart polyline {
   stroke: #2563eb;
+}
+
+@media (max-width: 640px) {
+  .number-pad-key {
+    min-height: 3.25rem;
+    font-size: 1.25rem;
+  }
 }
