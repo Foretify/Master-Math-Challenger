@@ -10,8 +10,8 @@ export function levelToFactorMax(level) {
 
 export function createQuestion(level) {
   const max = levelToFactorMax(level)
-  const factorA = 1 + Math.floor(Math.random() * max)
-  const factorB = 1 + Math.floor(Math.random() * max)
+  const factorA = 1 + secureRandomInt(max)
+  const factorB = 1 + secureRandomInt(max)
 
   return {
     factorA,
@@ -72,7 +72,7 @@ export function scoreCompetitionSessions(sessions) {
   const avgTime =
     sessions.length > 0
       ? sessions.reduce((sum, session) => sum + session.avgTimePerQuestion, 0) / sessions.length
-      : Infinity
+      : null
 
   return {
     totalCorrect,
@@ -80,4 +80,14 @@ export function scoreCompetitionSessions(sessions) {
     avgTime,
     sessionCount: sessions.length,
   }
+}
+
+function secureRandomInt(maxExclusive) {
+  if (maxExclusive <= 0) {
+    return 0
+  }
+
+  const bytes = new Uint32Array(1)
+  globalThis.crypto?.getRandomValues?.(bytes)
+  return bytes[0] % maxExclusive
 }

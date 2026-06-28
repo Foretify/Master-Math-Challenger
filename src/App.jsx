@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import {
   TOTAL_QUESTIONS,
@@ -29,6 +29,12 @@ function formatAccuracy(value) {
   return `${value.toFixed(1)}%`
 }
 
+async function hashPassword(password) {
+  const encoded = new TextEncoder().encode(password)
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function App() {
   const [db, setDb] = useState(() => readDb())
   const [currentUserId, setCurrentUserId] = useState(null)
@@ -57,6 +63,7 @@ function App() {
 
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
+  const [timerNowMs, setTimerNowMs] = useState(Date.now())
 
   const currentUser = useMemo(
     () => db.users.find((user) => user.id === currentUserId) ?? null,
@@ -129,7 +136,16 @@ function App() {
     writeDb(nextDb)
   }
 
-  function handleAuthSubmit(event) {
+  useEffect(() => {
+    if (!sessionState) {
+      return
+    }
+
+    const timer = setInterval(() => setTimerNowMs(Date.now()), 250)
+    return () => clearInterval(timer)
+  }, [sessionState])
+
+  async function handleAuthSubmit(event) {
     event.preventDefault()
     const email = authForm.email.trim().toLowerCase()
     const password = authForm.password.trim()
@@ -140,11 +156,36 @@ function App() {
     }
 
     if (authMode === 'login') {
-      const match = db.users.find((user) => user.email === email && user.password === password)
+      const passwordHash = await hashPassword(password)
+      const match = db.users.find((user) => {
+        if (user.email !== email) {
+          return false
+        }
+
+        if (user.passwordHash) {
+          return user.passwordHash === passwordHash
+        }
+
+        return user.password === password
+      })
 
       if (!match) {
         setAuthError('Invalid credentials.')
         return
+      }
+
+      if (!match.passwordHash) {
+        persist({
+          ...db,
+          users: db.users.map((user) =>
+            user.id === match.id
+              ? (() => {
+                  const { password: _password, ...rest } = user
+                  return { ...rest, passwordHash }
+                })()
+              : user,
+          ),
+        })
       }
 
       setCurrentUserId(match.id)
@@ -164,11 +205,12 @@ function App() {
       return
     }
 
+    const passwordHash = await hashPassword(password)
     const user = {
       id: newId('usr'),
       displayName,
       email,
-      password,
+      passwordHash,
       avatar: '',
       ageOrGrade: authForm.ageOrGrade.trim(),
       createdAt: new Date().toISOString(),
@@ -487,7 +529,7 @@ function App() {
         return b.totalCorrect - a.totalCorrect
       }
 
-      return a.avgTime - b.avgTime
+      return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
     })
   }
 
@@ -706,7 +748,7 @@ function App() {
                     autoFocus
                   />
                 </label>
-                <p>Question timer: {formatMs(Date.now() - sessionState.questionStartedAt)}</p>
+                <p>Question timer: {formatMs(timerNowMs - sessionState.questionStartedAt)}</p>
                 <button type="submit">Submit answer</button>
               </form>
             </>
@@ -979,7 +1021,7 @@ function App() {
                   <td>{row.displayName}</td>
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
-                  <td>{row.avgTime === Infinity ? '-' : formatMs(row.avgTime)}</td>
+                  <td>{row.avgTime == null ? '-' : formatMs(row.avgTime)}</td>
                 </tr>
               ))}
               {leaderboardRows.length === 0 && (

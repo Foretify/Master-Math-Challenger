@@ -12,7 +12,14 @@ const defaultDb = {
 }
 
 export function newId(prefix) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`
+  if (globalThis.crypto?.randomUUID) {
+    return `${prefix}_${globalThis.crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+  }
+
+  const bytes = new Uint8Array(8)
+  globalThis.crypto?.getRandomValues?.(bytes)
+  const suffix = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${prefix}_${suffix || Date.now().toString(16)}`
 }
 
 export function readDb() {
