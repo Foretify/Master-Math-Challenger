@@ -12,6 +12,7 @@ import {
 import { newId, readDb, writeDb } from './lib/storage'
 
 const SCORING_RULE = 'total_correct_time_tiebreak'
+const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
 
 function asDateInputValue(date) {
   return date.toISOString().slice(0, 10)
@@ -318,6 +319,10 @@ function App() {
   function appendAnswerDigit(digit) {
     setSessionState((previous) => {
       if (!previous) {
+        return previous
+      }
+
+      if (!/^[0-9]$/.test(digit)) {
         return previous
       }
 
@@ -780,21 +785,20 @@ function App() {
                   />
                 </label>
                 <div className="number-pad" aria-label="Number pad">
-                  {['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null].map(
-                    (digit, index) =>
-                      digit ? (
-                        <button
-                          key={digit}
-                          type="button"
-                          className="number-pad-key"
-                          onClick={() => appendAnswerDigit(digit)}
-                          aria-label={`Enter digit ${digit}`}
-                        >
-                          {digit}
-                        </button>
-                      ) : (
-                        <div key={`spacer-${index}`} className="number-pad-spacer" aria-hidden="true" />
-                      ),
+                  {KEYPAD_LAYOUT.map((digit, index) =>
+                    digit ? (
+                      <button
+                        key={digit}
+                        type="button"
+                        className="number-pad-key"
+                        onClick={() => appendAnswerDigit(digit)}
+                        aria-label={`Enter digit ${digit}`}
+                      >
+                        {digit}
+                      </button>
+                    ) : (
+                      <div key={`spacer-${index}`} className="number-pad-spacer" aria-hidden="true" />
+                    ),
                   )}
                 </div>
                 <div className="number-pad-actions">
