@@ -12,6 +12,7 @@ import {
 import { newId, readDb, writeDb } from './lib/storage'
 
 const SCORING_RULE = 'total_correct_time_tiebreak'
+// Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
 
 function asDateInputValue(date) {
@@ -797,7 +798,11 @@ function App() {
                         {digit}
                       </button>
                     ) : (
-                      <div key={`spacer-${index}`} className="number-pad-spacer" aria-hidden="true" />
+                      <div
+                        key={`spacer-${Math.floor(index / 3)}-${index % 3}`}
+                        className="number-pad-spacer"
+                        aria-hidden="true"
+                      />
                     ),
                   )}
                 </div>
