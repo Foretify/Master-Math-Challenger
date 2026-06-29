@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { logActivity } from '../lib/activityLog'
 import { clampQuestionCount } from '../lib/game'
@@ -30,7 +30,7 @@ export function useCompetitions(userId) {
     refresh()
   }, [refresh])
 
-  async function createCompetition(form, groupMemberIds) {
+  const createCompetition = useCallback(async (form, groupMemberIds) => {
     const name = form.name.trim()
     if (!name || !userId) {
       setError('Competition name is required.')
@@ -80,9 +80,9 @@ export function useCompetitions(userId) {
     await logActivity('competition_created', { competition_id: competition.id })
     await refresh()
     return competition
-  }
+  }, [userId, refresh])
 
-  async function joinCompetition(competitionId) {
+  const joinCompetition = useCallback(async (competitionId) => {
     const alreadyParticipant = participants.some(
       (entry) => entry.competition_id === competitionId && entry.user_id === userId,
     )
@@ -96,9 +96,9 @@ export function useCompetitions(userId) {
       .insert({ competition_id: competitionId, user_id: userId })
 
     await refresh()
-  }
+  }, [userId, participants, refresh])
 
-  async function fetchAppLeaderboard() {
+  const fetchAppLeaderboard = useCallback(async () => {
     const { data, error: rpcError } = await supabase.rpc('get_app_leaderboard')
 
     if (rpcError) {
@@ -120,9 +120,9 @@ export function useCompetitions(userId) {
         }
         return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
       })
-  }
+  }, [])
 
-  async function fetchLeaderboard(competitionId) {
+  const fetchLeaderboard = useCallback(async (competitionId) => {
     if (!competitionId) {
       return []
     }
@@ -150,7 +150,19 @@ export function useCompetitions(userId) {
         }
         return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
       })
-  }
+  }, [])
 
-  return { competitions, participants, error, createCompetition, joinCompetition, fetchLeaderboard, fetchAppLeaderboard, refresh }
+  return useMemo(
+    () => ({
+      competitions,
+      participants,
+      error,
+      createCompetition,
+      joinCompetition,
+      fetchLeaderboard,
+      fetchAppLeaderboard,
+      refresh,
+    }),
+    [competitions, participants, error, createCompetition, joinCompetition, fetchLeaderboard, fetchAppLeaderboard, refresh],
+  )
 }
