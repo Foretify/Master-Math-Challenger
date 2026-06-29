@@ -76,7 +76,7 @@ function App() {
   const auth = useAuth()
   const currentUserId = auth.user?.id ?? null
 
-  const [screen, setScreen] = useState('dashboard')
+  const [screen, setScreen] = useState('competitions')
   const [authMode, setAuthMode] = useState('login')
   const [authError, setAuthError] = useState('')
   const [authForm, setAuthForm] = useState({
@@ -103,6 +103,8 @@ function App() {
   })
   const [practiceQuestionCount, setPracticeQuestionCount] = useState(DEFAULT_QUESTION_COUNT)
   const [selectedCompetitionId, setSelectedCompetitionId] = useState('')
+  const [viewingCompetitionId, setViewingCompetitionId] = useState(null)
+  const [competitionDetailRows, setCompetitionDetailRows] = useState([])
   const [leaderboardRows, setLeaderboardRows] = useState([])
   const [appLeaderboardRows, setAppLeaderboardRows] = useState([])
   const [appLeaderboardSort, setAppLeaderboardSort] = useState('score')
@@ -232,6 +234,30 @@ function App() {
 
     competitionsApi.fetchAppLeaderboard().then(setAppLeaderboardRows)
   }, [currentUserId, competitionsApi])
+
+  useEffect(() => {
+    if (!viewingCompetitionId) {
+      setCompetitionDetailRows([])
+      return
+    }
+
+    competitionsApi.fetchLeaderboard(viewingCompetitionId).then(setCompetitionDetailRows)
+  }, [viewingCompetitionId, competitionsApi])
+
+  function viewCompetition(competitionId) {
+    setViewingCompetitionId(competitionId)
+    setScreen('competitionDetail')
+  }
+
+  function getCompetitionStatus(competition) {
+    const now = Date.now()
+    const start = new Date(competition.start_date).getTime()
+    const end = competition.end_date ? new Date(competition.end_date).getTime() : Infinity
+
+    if (now < start) return 'upcoming'
+    if (now > end) return 'ended'
+    return 'active'
+  }
 
   async function handleAuthSubmit(event) {
     event.preventDefault()
