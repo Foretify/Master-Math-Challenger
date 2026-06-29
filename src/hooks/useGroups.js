@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { logActivity } from '../lib/activityLog'
 
@@ -37,7 +37,7 @@ export function useGroups(userId) {
     refresh()
   }, [refresh])
 
-  async function createGroup(name) {
+  const createGroup = useCallback(async (name) => {
     const trimmed = name.trim()
     if (!trimmed || !userId) {
       setError('Group name is required.')
@@ -67,9 +67,9 @@ export function useGroups(userId) {
     setError('')
     await logActivity('group_created', { group_id: group.id })
     await refresh()
-  }
+  }, [userId, refresh])
 
-  async function createInvite(groupId) {
+  const createInvite = useCallback(async (groupId) => {
     const code = randomInviteCode()
 
     const { error: inviteError } = await supabase.from('group_invites').insert({
@@ -84,9 +84,9 @@ export function useGroups(userId) {
     }
 
     await refresh()
-  }
+  }, [userId, refresh])
 
-  async function joinGroupByCode(code) {
+  const joinGroupByCode = useCallback(async (code) => {
     const trimmedCode = code.trim().toUpperCase()
     if (!trimmedCode || !userId) {
       return
@@ -121,7 +121,10 @@ export function useGroups(userId) {
     setError('')
     await logActivity('group_joined', { group_id: invite.group_id })
     await refresh()
-  }
+  }, [userId, refresh])
 
-  return { groups, members, invites, error, createGroup, createInvite, joinGroupByCode, refresh }
+  return useMemo(
+    () => ({ groups, members, invites, error, createGroup, createInvite, joinGroupByCode, refresh }),
+    [groups, members, invites, error, createGroup, createInvite, joinGroupByCode, refresh],
+  )
 }

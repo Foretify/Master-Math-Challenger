@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { logActivity } from '../lib/activityLog'
 
@@ -36,7 +36,7 @@ export function useSessions(userId) {
     refresh()
   }, [refresh])
 
-  async function saveSession({ sessionId, competitionId, startedAt, endedAt, summary, results }) {
+  const saveSession = useCallback(async ({ sessionId, competitionId, startedAt, endedAt, summary, results }) => {
     const sessionRecord = {
       id: sessionId,
       user_id: userId,
@@ -85,9 +85,9 @@ export function useSessions(userId) {
       console.error('Failed to refresh sessions after saving a session:', error)
     })
     return { ok: true }
-  }
+  }, [userId, refresh])
 
-  async function fetchSessionResults(sessionId) {
+  const fetchSessionResults = useCallback(async (sessionId) => {
     const { data, error: fetchError } = await supabase
       .from('questions_log')
       .select('*')
@@ -109,7 +109,10 @@ export function useSessions(userId) {
       difficultyLevelAtTime: row.difficulty_level_at_time,
       answeredAt: row.answered_at,
     }))
-  }
+  }, [])
 
-  return { sessions, error, saveSession, fetchSessionResults, refresh }
+  return useMemo(
+    () => ({ sessions, error, saveSession, fetchSessionResults, refresh }),
+    [sessions, error, saveSession, fetchSessionResults, refresh],
+  )
 }
