@@ -40,6 +40,9 @@ const CHART_TOP_EDGE = 12
 const CHART_BOTTOM_EDGE = 92
 const CHART_WIDTH = 84
 const CHART_HEIGHT = 80
+const CHART_Y_AXIS_LABEL_X = 10
+const CHART_Y_AXIS_LABEL_OFFSET = 1.5
+const CHART_X_AXIS_LABEL_Y = 98
 const CHART_LABEL_TOP_THRESHOLD = 18
 const CHART_LABEL_BELOW_OFFSET = 7
 const CHART_LABEL_ABOVE_OFFSET = 4
@@ -440,20 +443,6 @@ function App() {
     return { byAccuracy, bySpeed, byDifficulty }
   }
 
-  function accuracyChartPoints(values) {
-    if (values.length === 0) {
-      return ''
-    }
-
-    return values
-      .map((value, index) => {
-        const x = accuracyChartX(index, values.length)
-        const y = accuracyChartY(value)
-        return `${x},${y}`
-      })
-      .join(' ')
-  }
-
   function accuracyChartLabelY(y) {
     return y <= CHART_LABEL_TOP_THRESHOLD ? y + CHART_LABEL_BELOW_OFFSET : y - CHART_LABEL_ABOVE_OFFSET
   }
@@ -591,6 +580,7 @@ function App() {
     x: accuracyChartX(index, trend.length),
     y: accuracyChartY(value),
   }))
+  const accuracyChartLinePoints = accuracyChartData.map((point) => `${point.x},${point.y}`).join(' ')
   const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
@@ -1168,7 +1158,12 @@ function App() {
                           y2={y}
                           className="chart-grid-line"
                         />
-                        <text x="10" y={y + 1.5} textAnchor="end" className="chart-axis-label">
+                        <text
+                          x={CHART_Y_AXIS_LABEL_X}
+                          y={y + CHART_Y_AXIS_LABEL_OFFSET}
+                          textAnchor="end"
+                          className="chart-axis-label"
+                        >
                           {tick}%
                         </text>
                       </g>
@@ -1189,7 +1184,7 @@ function App() {
                     className="chart-axis-line"
                   />
                   {trend.length > 1 && (
-                    <polyline points={accuracyChartPoints(trend)} fill="none" strokeWidth="2" />
+                    <polyline points={accuracyChartLinePoints} fill="none" strokeWidth="2" />
                   )}
                   {accuracyChartData.map((point) => (
                     <g key={point.id}>
@@ -1202,7 +1197,12 @@ function App() {
                       >
                         {formatAccuracy(point.value)}
                       </text>
-                      <text x={point.x} y="98" textAnchor="middle" className="chart-axis-label">
+                      <text
+                        x={point.x}
+                        y={CHART_X_AXIS_LABEL_Y}
+                        textAnchor="middle"
+                        className="chart-axis-label"
+                      >
                         {point.sessionNumber}
                       </text>
                     </g>
