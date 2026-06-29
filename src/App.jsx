@@ -1,4 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import './App.css'
 import logo from './assets/logo-512.png'
 import {
@@ -41,19 +50,6 @@ function formatDateTime(value) {
     timeStyle: 'short',
   })
 }
-
-const CHART_Y_AXIS_TICKS = [0, 25, 50, 75, 100]
-const CHART_LEFT_EDGE = 12
-const CHART_TOP_EDGE = 12
-const CHART_BOTTOM_EDGE = 92
-const CHART_WIDTH = 84
-const CHART_HEIGHT = 80
-const CHART_Y_AXIS_LABEL_X = 10
-const CHART_Y_AXIS_LABEL_OFFSET = 1.5
-const CHART_X_AXIS_LABEL_Y = 98
-const CHART_LABEL_TOP_THRESHOLD = 18
-const CHART_LABEL_BELOW_OFFSET = 7
-const CHART_LABEL_ABOVE_OFFSET = 4
 
 function QuestionCountSelector({ selectedCount, onSelect }) {
   return (
@@ -167,6 +163,10 @@ function App() {
     const now = Date.now()
 
     return competitionsApi.competitions.filter((competition) => {
+      if (competition.group_id && !groupsApi.groups.some((group) => group.id === competition.group_id)) {
+        return false
+      }
+
       const isParticipant = competitionsApi.participants.some(
         (participant) =>
           participant.competition_id === competition.id && participant.user_id === currentUserId,
@@ -180,7 +180,7 @@ function App() {
       const end = competition.end_date ? new Date(competition.end_date).getTime() : Infinity
       return now >= start && now <= end
     })
-  }, [competitionsApi.competitions, competitionsApi.participants, currentUserId])
+  }, [competitionsApi.competitions, competitionsApi.participants, currentUserId, groupsApi.groups])
 
   const userSessions = sessionsApi.sessions
 
@@ -512,17 +512,6 @@ function App() {
     return { byAccuracy, bySpeed, byDifficulty }
   }
 
-  function accuracyChartLabelY(y) {
-    return y <= CHART_LABEL_TOP_THRESHOLD ? y + CHART_LABEL_BELOW_OFFSET : y - CHART_LABEL_ABOVE_OFFSET
-  }
-
-  function accuracyChartX(index, total) {
-    return CHART_LEFT_EDGE + (index / Math.max(total - 1, 1)) * CHART_WIDTH
-  }
-
-  function accuracyChartY(value) {
-    return CHART_BOTTOM_EDGE - (value / 100) * CHART_HEIGHT
-  }
 
   if (isPasswordRecovery) {
     return (
@@ -643,13 +632,9 @@ function App() {
   const bestSessions = getBestSessions()
   const trend = buildAccuracyTrend(userSessions, 12)
   const accuracyChartData = trend.map((value, index) => ({
-    id: `session-${index + 1}`,
     sessionNumber: index + 1,
-    value,
-    x: accuracyChartX(index, trend.length),
-    y: accuracyChartY(value),
+    accuracy: Number(value.toFixed(1)),
   }))
-  const accuracyChartLinePoints = accuracyChartData.map((point) => `${point.x},${point.y}`).join(' ')
   const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
@@ -1264,68 +1249,42 @@ function App() {
               <p>Complete a session to see charted accuracy percentages.</p>
             ) : (
               <>
-                <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
-                  {CHART_Y_AXIS_TICKS.map((tick) => {
-                    const y = accuracyChartY(tick)
-                    return (
-                      <g key={tick}>
-                        <line
-                          x1={CHART_LEFT_EDGE}
-                          y1={y}
-                          x2={CHART_LEFT_EDGE + CHART_WIDTH}
-                          y2={y}
-                          className="chart-grid-line"
-                        />
-                        <text
-                          x={CHART_Y_AXIS_LABEL_X}
-                          y={y + CHART_Y_AXIS_LABEL_OFFSET}
-                          textAnchor="end"
-                          className="chart-axis-label"
-                        >
-                          {tick}%
-                        </text>
-                      </g>
-                    )
-                  })}
-                  <line
-                    x1={CHART_LEFT_EDGE}
-                    y1={CHART_TOP_EDGE}
-                    x2={CHART_LEFT_EDGE}
-                    y2={CHART_BOTTOM_EDGE}
-                    className="chart-axis-line"
-                  />
-                  <line
-                    x1={CHART_LEFT_EDGE}
-                    y1={CHART_BOTTOM_EDGE}
-                    x2={CHART_LEFT_EDGE + CHART_WIDTH}
-                    y2={CHART_BOTTOM_EDGE}
-                    className="chart-axis-line"
-                  />
-                  {trend.length > 1 && (
-                    <polyline points={accuracyChartLinePoints} fill="none" strokeWidth="2" />
-                  )}
-                  {accuracyChartData.map((point) => (
-                    <g key={point.id}>
-                      <circle cx={point.x} cy={point.y} r="1.8" className="chart-point" />
-                      <text
-                        x={point.x}
-                        y={accuracyChartLabelY(point.y)}
-                        textAnchor="middle"
-                        className="chart-point-label"
-                      >
-                        {formatAccuracy(point.value)}
-                      </text>
-                      <text
-                        x={point.x}
-                        y={CHART_X_AXIS_LABEL_Y}
-                        textAnchor="middle"
-                        className="chart-axis-label"
-                      >
-                        {point.sessionNumber}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
+                <div className="chart" aria-label="Accuracy trend chart">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={accuracyChartData} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="sessionNumber"
+                        tick={{ fontSize: 12, fill: '#475569' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#cbd5e1' }}
+                        label={{ value: 'Session', position: 'insideBottom', offset: -2, fontSize: 12, fill: '#475569' }}
+                      />
+                      <YAxis
+                        domain={[0, 100]}
+                        ticks={[0, 25, 50, 75, 100]}
+                        tickFormatter={(value) => `${value}%`}
+                        tick={{ fontSize: 12, fill: '#475569' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#cbd5e1' }}
+                        width={44}
+                      />
+                      <Tooltip
+                        formatter={(value) => [`${value}%`, 'Accuracy']}
+                        labelFormatter={(label) => `Session ${label}`}
+                        contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="accuracy"
+                        stroke="var(--brand)"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: 'var(--brand)', strokeWidth: 0 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
                 <p className="chart-caption">
                   Session numbers run oldest to newest across the chart.
                 </p>
