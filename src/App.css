@@ -1,3 +1,10 @@
+:root {
+  --brand: #d85a30;
+  --brand-dark: #b8472a;
+  --brand-light: #fbe6dd;
+  --ink: #1f2933;
+}
+
 .container {
   max-width: 960px;
   margin: 0 auto;
@@ -8,7 +15,41 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+}
+
+h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ink);
+}
+
+.app-logo {
+  width: 3.75rem;
+  height: 3.75rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(216, 90, 48, 0.35));
+}
+
+.auth-hero {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.app-logo-hero {
+  width: 7rem;
+  height: 7rem;
+  padding: 0.75rem;
+  background: var(--brand-light);
+  border-radius: 50%;
+  filter: drop-shadow(0 4px 10px rgba(216, 90, 48, 0.3));
+}
+
+.centered-title {
+  justify-content: center;
+  text-align: center;
 }
 
 .subtitle {
@@ -25,8 +66,8 @@
 
 .tabs button,
 button {
-  background: #2563eb;
-  border: 1px solid #2563eb;
+  background: var(--brand);
+  border: 1px solid var(--brand);
   color: #fff;
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
@@ -34,12 +75,13 @@ button {
 }
 
 .tabs button.active {
-  background: #1d4ed8;
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
 }
 
 button.ghost {
   background: transparent;
-  color: #1d4ed8;
+  color: var(--brand-dark);
 }
 
 .panel {
@@ -47,6 +89,10 @@ button.ghost {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 1rem;
+}
+
+.panel h2 {
+  color: var(--brand-dark);
 }
 
 .stack {
@@ -148,7 +194,7 @@ td {
 }
 
 .chart polyline {
-  stroke: #2563eb;
+  stroke: var(--brand);
 }
 
 @media (max-width: 640px) {

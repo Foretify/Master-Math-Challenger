@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import logo from './assets/logo-512.png'
 import {
   TOTAL_QUESTIONS,
   buildAccuracyTrend,
@@ -411,7 +412,10 @@ function App() {
   if (isPasswordRecovery) {
     return (
       <main className="container">
-        <h1>Master Math Challenger</h1>
+        <h1>
+          <img src={logo} alt="" className="app-logo" />
+          Master Math Challenger
+        </h1>
         <section className="panel stack">
           <h2>Choose a new password</h2>
           <form onSubmit={handleResetPasswordSubmit} className="stack">
@@ -443,7 +447,12 @@ function App() {
   if (!currentUserId) {
     return (
       <main className="container">
-        <h1>Master Math Challenger</h1>
+        <div className="auth-hero">
+          <img src={logo} alt="" className="app-logo app-logo-hero" />
+        </div>
+        <h1 className="centered-title">
+          Master Math Challenger
+        </h1>
         <p className="subtitle">Family multiplication competitions with adaptive practice.</p>
 
         <section className="panel">
@@ -527,7 +536,10 @@ function App() {
     <main className="container">
       <header className="header">
         <div>
-          <h1>Master Math Challenger</h1>
+          <h1>
+            <img src={logo} alt="" className="app-logo" />
+            Master Math Challenger
+          </h1>
           <p className="subtitle">
             Hi {auth.profile?.display_name}! Ready for 30 multiplication questions?
           </p>
