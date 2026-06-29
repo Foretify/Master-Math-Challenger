@@ -69,6 +69,16 @@ function App() {
   const [appLeaderboardRows, setAppLeaderboardRows] = useState([])
   const [appLeaderboardSort, setAppLeaderboardSort] = useState('score')
 
+  const sortedAppLeaderboardRows = useMemo(() => {
+    if (appLeaderboardSort === 'sessions') {
+      return [...appLeaderboardRows].sort((a, b) => b.sessionCount - a.sessionCount)
+    }
+    return [...appLeaderboardRows].sort((a, b) => {
+      if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect
+      return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
+    })
+  }, [appLeaderboardRows, appLeaderboardSort])
+
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
   const [timerNowMs, setTimerNowMs] = useState(Date.now())
@@ -1002,27 +1012,14 @@ function App() {
             <button
               type="button"
               className={appLeaderboardSort === 'score' ? 'active' : 'ghost'}
-              onClick={() => {
-                setAppLeaderboardSort('score')
-                setAppLeaderboardRows((rows) =>
-                  [...rows].sort((a, b) => {
-                    if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect
-                    return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
-                  }),
-                )
-              }}
+              onClick={() => setAppLeaderboardSort('score')}
             >
               Highest score
             </button>
             <button
               type="button"
               className={appLeaderboardSort === 'sessions' ? 'active' : 'ghost'}
-              onClick={() => {
-                setAppLeaderboardSort('sessions')
-                setAppLeaderboardRows((rows) =>
-                  [...rows].sort((a, b) => b.sessionCount - a.sessionCount),
-                )
-              }}
+              onClick={() => setAppLeaderboardSort('sessions')}
             >
               Most sessions
             </button>
@@ -1039,16 +1036,16 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {appLeaderboardRows.map((row, index) => (
+              {sortedAppLeaderboardRows.map((row, index) => (
                 <tr key={row.userId}>
                   <td>{index + 1}</td>
                   <td>{row.displayName}</td>
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
-                  <td>{row.avgTime == null ? '-' : formatMs(row.avgTime)}</td>
+                  <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
                 </tr>
               ))}
-              {appLeaderboardRows.length === 0 && (
+              {sortedAppLeaderboardRows.length === 0 && (
                 <tr>
                   <td colSpan="5">No scores yet.</td>
                 </tr>
@@ -1089,7 +1086,7 @@ function App() {
                   <td>{row.displayName}</td>
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
-                  <td>{row.avgTime == null ? '-' : formatMs(row.avgTime)}</td>
+                  <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
                 </tr>
               ))}
               {leaderboardRows.length === 0 && (

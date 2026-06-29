@@ -112,7 +112,7 @@ export function useCompetitions(userId) {
         displayName: row.display_name,
         totalCorrect: Number(row.total_correct),
         sessionCount: Number(row.session_count),
-        avgTime: row.avg_time,
+        avgTime: row.avg_time ?? null,
       }))
       .sort((a, b) => {
         if (b.totalCorrect !== a.totalCorrect) {
@@ -142,7 +142,7 @@ export function useCompetitions(userId) {
         displayName: row.display_name,
         totalCorrect: row.total_correct,
         sessionCount: row.session_count,
-        avgTime: row.avg_time,
+        avgTime: row.avg_time ?? null,
       }))
       .sort((a, b) => {
         if (b.totalCorrect !== a.totalCorrect) {
