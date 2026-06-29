@@ -79,10 +79,10 @@ export function useSessions(userId) {
 
     setError('')
     logActivity('session_completed', { session_id: sessionId }).catch((error) => {
-      console.error('Failed to log completed session activity.', error)
+      console.error('Failed to log completed session activity:', error)
     })
     refresh().catch((error) => {
-      console.error('Failed to refresh sessions after saving a session.', error)
+      console.error('Failed to refresh sessions after saving a session:', error)
     })
     return { ok: true }
   }
