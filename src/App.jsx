@@ -12,6 +12,8 @@ import {
 import { newId, readDb, writeDb } from './lib/storage'
 
 const SCORING_RULE = 'total_correct_time_tiebreak'
+// Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
+const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
 
 function asDateInputValue(date) {
   return date.toISOString().slice(0, 10)
@@ -312,6 +314,40 @@ function App() {
       questionStartedAt: Date.now(),
       answer: '',
       results: nextResults,
+    })
+  }
+
+  function appendAnswerDigit(digit) {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      if (!/^[0-9]$/.test(digit)) {
+        return previous
+      }
+
+      return { ...previous, answer: `${previous.answer}${digit}` }
+    })
+  }
+
+  function clearAnswer() {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return { ...previous, answer: '' }
+    })
+  }
+
+  function removeLastAnswerDigit() {
+    setSessionState((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return { ...previous, answer: previous.answer.slice(0, -1) }
     })
   }
 
@@ -745,9 +781,49 @@ function App() {
                     onChange={(event) =>
                       setSessionState({ ...sessionState, answer: event.target.value })
                     }
+                    inputMode="numeric"
                     autoFocus
                   />
                 </label>
+                <div className="number-pad" aria-label="Number pad">
+                  {KEYPAD_LAYOUT.map((digit, index) =>
+                    digit ? (
+                      <button
+                        key={digit}
+                        type="button"
+                        className="number-pad-key"
+                        onClick={() => appendAnswerDigit(digit)}
+                        aria-label={`Enter digit ${digit}`}
+                      >
+                        {digit}
+                      </button>
+                    ) : (
+                      <div
+                        key={`spacer-${Math.floor(index / 3)}-${index % 3}`}
+                        className="number-pad-spacer"
+                        aria-hidden="true"
+                      />
+                    ),
+                  )}
+                </div>
+                <div className="number-pad-actions">
+                  <button
+                    type="button"
+                    className="number-pad-key"
+                    onClick={removeLastAnswerDigit}
+                    aria-label="Delete last digit"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    className="number-pad-key"
+                    onClick={clearAnswer}
+                    aria-label="Clear answer"
+                  >
+                    Clear
+                  </button>
+                </div>
                 <p>Question timer: {formatMs(timerNowMs - sessionState.questionStartedAt)}</p>
                 <button type="submit">Submit answer</button>
               </form>
