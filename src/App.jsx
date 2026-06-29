@@ -810,8 +810,16 @@ function App() {
             <p>Complete a session to see your summary.</p>
           ) : (
             <>
-              {isSavingSession && <p>Saving session...</p>}
-              {sessionSaveError && <p className="error">{sessionSaveError}</p>}
+              {isSavingSession && (
+                <p role="status" aria-live="polite">
+                  Saving session...
+                </p>
+              )}
+              {sessionSaveError && (
+                <p className="error" role="alert" aria-live="assertive">
+                  {sessionSaveError}
+                </p>
+              )}
               <p>
                 Score: {lastSummary.correctCount}/{lastSummary.totalQuestions}
               </p>

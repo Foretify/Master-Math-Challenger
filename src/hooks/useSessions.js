@@ -58,8 +58,6 @@ export function useSessions(userId) {
       return { ok: false, error: insertError.message }
     }
 
-    setSessions((currentSessions) => [...currentSessions, toSessionRecord(sessionRecord)])
-
     const logs = results.map((result) => ({
       session_id: sessionId,
       factor_a: result.factorA,
@@ -79,9 +77,10 @@ export function useSessions(userId) {
       return { ok: false, error: questionsLogError.message }
     }
 
+    setSessions((currentSessions) => [...currentSessions, toSessionRecord(sessionRecord)])
     setError('')
-    void logActivity('session_completed', { session_id: sessionId })
-    void refresh()
+    logActivity('session_completed', { session_id: sessionId }).catch(() => {})
+    refresh().catch(() => {})
     return { ok: true }
   }
 
