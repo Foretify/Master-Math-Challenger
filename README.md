@@ -20,7 +20,7 @@
 - 👤 **Personal profiles** with display name and optional age/grade
 - 👥 **Group play** with group creation, invite codes, and member management
 - 🏆 **Competitions** for private groups or ad-hoc sessions
-- 📊 **Live-style ranking logic** using total correct answers and speed tie-breakers
+- 📊 **Leaderboard ranking** using total correct answers and speed tie-breakers
 - 🎯 **Adaptive practice** with 30-question multiplication sessions (levels 1–10)
 - 🧾 **Session tracking** with per-question logs and summary metrics
 - 📈 **Performance analytics** including daily totals, history, and accuracy trends
