@@ -19,7 +19,7 @@ import AdminPage from './components/AdminPage'
 
 // Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
-const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25, 30].filter(
+const QUESTION_COUNT_OPTIONS = [5, 10, 15, 20, 25, 30].filter(
   (count) => clampQuestionCount(count) === count,
 )
 
@@ -41,6 +41,19 @@ function formatDateTime(value) {
     timeStyle: 'short',
   })
 }
+
+const CHART_Y_AXIS_TICKS = [0, 25, 50, 75, 100]
+const CHART_LEFT_EDGE = 12
+const CHART_TOP_EDGE = 12
+const CHART_BOTTOM_EDGE = 92
+const CHART_WIDTH = 84
+const CHART_HEIGHT = 80
+const CHART_Y_AXIS_LABEL_X = 10
+const CHART_Y_AXIS_LABEL_OFFSET = 1.5
+const CHART_X_AXIS_LABEL_Y = 98
+const CHART_LABEL_TOP_THRESHOLD = 18
+const CHART_LABEL_BELOW_OFFSET = 7
+const CHART_LABEL_ABOVE_OFFSET = 4
 
 function QuestionCountSelector({ selectedCount, onSelect }) {
   return (
@@ -110,6 +123,8 @@ function App() {
 
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
+  const [isSavingSession, setIsSavingSession] = useState(false)
+  const [sessionSaveError, setSessionSaveError] = useState('')
   const [timerNowMs, setTimerNowMs] = useState(Date.now())
 
   const groupsApi = useGroups(currentUserId)
@@ -302,6 +317,8 @@ function App() {
       : clampQuestionCount(practiceQuestionCount)
 
     const startingLevel = getStartingLevel(userSessions)
+    setIsSavingSession(false)
+    setSessionSaveError('')
     setSessionState({
       sessionId: globalThis.crypto.randomUUID(),
       competitionId,
@@ -315,6 +332,19 @@ function App() {
       results: [],
     })
     setScreen('session')
+  }
+
+  async function persistCompletedSession(sessionToSave) {
+    setIsSavingSession(true)
+    setSessionSaveError('')
+
+    const saveResult = await sessionsApi.saveSession(sessionToSave)
+
+    if (!saveResult?.ok) {
+      setSessionSaveError(saveResult?.error ?? 'Unable to save your session right now.')
+    }
+
+    setIsSavingSession(false)
   }
 
   async function submitAnswer(event) {
@@ -347,15 +377,14 @@ function App() {
     if (nextResults.length === sessionState.totalQuestions) {
       const endedAt = new Date().toISOString()
       const summary = summarizeSession(nextResults, sessionState.startedAt, endedAt)
-
-      await sessionsApi.saveSession({
+      const completedSession = {
         sessionId: sessionState.sessionId,
         competitionId: sessionState.competitionId,
         startedAt: sessionState.startedAt,
         endedAt,
         summary,
         results: nextResults,
-      })
+      }
 
       setLastSummary({
         ...summary,
@@ -365,6 +394,7 @@ function App() {
       })
       setSessionState(null)
       setScreen('summary')
+      persistCompletedSession(completedSession)
       return
     }
 
@@ -380,6 +410,8 @@ function App() {
   }
 
   async function reviewPastSession(session) {
+    setIsSavingSession(false)
+    setSessionSaveError('')
     const results = await sessionsApi.fetchSessionResults(session.id)
     setLastSummary({
       totalQuestions: session.totalQuestions,
@@ -480,18 +512,16 @@ function App() {
     return { byAccuracy, bySpeed, byDifficulty }
   }
 
-  function accuracyChartPoints(values) {
-    if (values.length === 0) {
-      return ''
-    }
+  function accuracyChartLabelY(y) {
+    return y <= CHART_LABEL_TOP_THRESHOLD ? y + CHART_LABEL_BELOW_OFFSET : y - CHART_LABEL_ABOVE_OFFSET
+  }
 
-    return values
-      .map((value, index) => {
-        const x = (index / Math.max(values.length - 1, 1)) * 100
-        const y = 100 - value
-        return `${x},${y}`
-      })
-      .join(' ')
+  function accuracyChartX(index, total) {
+    return CHART_LEFT_EDGE + (index / Math.max(total - 1, 1)) * CHART_WIDTH
+  }
+
+  function accuracyChartY(value) {
+    return CHART_BOTTOM_EDGE - (value / 100) * CHART_HEIGHT
   }
 
   if (isPasswordRecovery) {
@@ -612,6 +642,14 @@ function App() {
 
   const bestSessions = getBestSessions()
   const trend = buildAccuracyTrend(userSessions, 12)
+  const accuracyChartData = trend.map((value, index) => ({
+    id: `session-${index + 1}`,
+    sessionNumber: index + 1,
+    value,
+    x: accuracyChartX(index, trend.length),
+    y: accuracyChartY(value),
+  }))
+  const accuracyChartLinePoints = accuracyChartData.map((point) => `${point.x},${point.y}`).join(' ')
   const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
@@ -805,6 +843,16 @@ function App() {
             <p>Complete a session to see your summary.</p>
           ) : (
             <>
+              {isSavingSession && (
+                <p role="status" aria-live="polite">
+                  Saving session...
+                </p>
+              )}
+              {sessionSaveError && (
+                <p className="error" role="alert">
+                  {sessionSaveError}
+                </p>
+              )}
               <div className="summary-stat-grid">
                 <article className="summary-stat-card is-highlight">
                   <p className="summary-card-label">Score</p>
@@ -1212,9 +1260,77 @@ function App() {
 
           <div className="stack">
             <h3>Accuracy trend (last {trend.length} sessions)</h3>
-            <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
-              <polyline points={accuracyChartPoints(trend)} fill="none" strokeWidth="2" />
-            </svg>
+            {trend.length === 0 ? (
+              <p>Complete a session to see charted accuracy percentages.</p>
+            ) : (
+              <>
+                <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
+                  {CHART_Y_AXIS_TICKS.map((tick) => {
+                    const y = accuracyChartY(tick)
+                    return (
+                      <g key={tick}>
+                        <line
+                          x1={CHART_LEFT_EDGE}
+                          y1={y}
+                          x2={CHART_LEFT_EDGE + CHART_WIDTH}
+                          y2={y}
+                          className="chart-grid-line"
+                        />
+                        <text
+                          x={CHART_Y_AXIS_LABEL_X}
+                          y={y + CHART_Y_AXIS_LABEL_OFFSET}
+                          textAnchor="end"
+                          className="chart-axis-label"
+                        >
+                          {tick}%
+                        </text>
+                      </g>
+                    )
+                  })}
+                  <line
+                    x1={CHART_LEFT_EDGE}
+                    y1={CHART_TOP_EDGE}
+                    x2={CHART_LEFT_EDGE}
+                    y2={CHART_BOTTOM_EDGE}
+                    className="chart-axis-line"
+                  />
+                  <line
+                    x1={CHART_LEFT_EDGE}
+                    y1={CHART_BOTTOM_EDGE}
+                    x2={CHART_LEFT_EDGE + CHART_WIDTH}
+                    y2={CHART_BOTTOM_EDGE}
+                    className="chart-axis-line"
+                  />
+                  {trend.length > 1 && (
+                    <polyline points={accuracyChartLinePoints} fill="none" strokeWidth="2" />
+                  )}
+                  {accuracyChartData.map((point) => (
+                    <g key={point.id}>
+                      <circle cx={point.x} cy={point.y} r="1.8" className="chart-point" />
+                      <text
+                        x={point.x}
+                        y={accuracyChartLabelY(point.y)}
+                        textAnchor="middle"
+                        className="chart-point-label"
+                      >
+                        {formatAccuracy(point.value)}
+                      </text>
+                      <text
+                        x={point.x}
+                        y={CHART_X_AXIS_LABEL_Y}
+                        textAnchor="middle"
+                        className="chart-axis-label"
+                      >
+                        {point.sessionNumber}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+                <p className="chart-caption">
+                  Session numbers run oldest to newest across the chart.
+                </p>
+              </>
+            )}
           </div>
 
           <table>
