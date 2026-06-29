@@ -35,6 +35,14 @@ function formatAccuracy(value) {
 }
 
 const CHART_Y_AXIS_TICKS = [0, 25, 50, 75, 100]
+const CHART_LEFT_EDGE = 12
+const CHART_TOP_EDGE = 12
+const CHART_BOTTOM_EDGE = 92
+const CHART_WIDTH = 84
+const CHART_HEIGHT = 80
+const CHART_LABEL_TOP_THRESHOLD = 18
+const CHART_LABEL_BELOW_OFFSET = 7
+const CHART_LABEL_ABOVE_OFFSET = 4
 
 function App() {
   const auth = useAuth()
@@ -439,15 +447,23 @@ function App() {
 
     return values
       .map((value, index) => {
-        const x = 12 + (index / Math.max(values.length - 1, 1)) * 84
-        const y = 92 - (value / 100) * 80
+        const x = accuracyChartX(index, values.length)
+        const y = accuracyChartY(value)
         return `${x},${y}`
       })
       .join(' ')
   }
 
   function accuracyChartLabelY(y) {
-    return y <= 18 ? y + 7 : y - 4
+    return y <= CHART_LABEL_TOP_THRESHOLD ? y + CHART_LABEL_BELOW_OFFSET : y - CHART_LABEL_ABOVE_OFFSET
+  }
+
+  function accuracyChartX(index, total) {
+    return CHART_LEFT_EDGE + (index / Math.max(total - 1, 1)) * CHART_WIDTH
+  }
+
+  function accuracyChartY(value) {
+    return CHART_BOTTOM_EDGE - (value / 100) * CHART_HEIGHT
   }
 
   if (isPasswordRecovery) {
@@ -572,8 +588,8 @@ function App() {
     id: `session-${index + 1}`,
     sessionNumber: index + 1,
     value,
-    x: 12 + (index / Math.max(trend.length - 1, 1)) * 84,
-    y: 92 - (value / 100) * 80,
+    x: accuracyChartX(index, trend.length),
+    y: accuracyChartY(value),
   }))
   const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
   if (auth.isAdmin) {
@@ -1142,18 +1158,36 @@ function App() {
               <>
                 <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
                   {CHART_Y_AXIS_TICKS.map((tick) => {
-                    const y = 92 - (tick / 100) * 80
+                    const y = accuracyChartY(tick)
                     return (
                       <g key={tick}>
-                        <line x1="12" y1={y} x2="96" y2={y} className="chart-grid-line" />
+                        <line
+                          x1={CHART_LEFT_EDGE}
+                          y1={y}
+                          x2={CHART_LEFT_EDGE + CHART_WIDTH}
+                          y2={y}
+                          className="chart-grid-line"
+                        />
                         <text x="10" y={y + 1.5} textAnchor="end" className="chart-axis-label">
                           {tick}%
                         </text>
                       </g>
                     )
                   })}
-                  <line x1="12" y1="12" x2="12" y2="92" className="chart-axis-line" />
-                  <line x1="12" y1="92" x2="96" y2="92" className="chart-axis-line" />
+                  <line
+                    x1={CHART_LEFT_EDGE}
+                    y1={CHART_TOP_EDGE}
+                    x2={CHART_LEFT_EDGE}
+                    y2={CHART_BOTTOM_EDGE}
+                    className="chart-axis-line"
+                  />
+                  <line
+                    x1={CHART_LEFT_EDGE}
+                    y1={CHART_BOTTOM_EDGE}
+                    x2={CHART_LEFT_EDGE + CHART_WIDTH}
+                    y2={CHART_BOTTOM_EDGE}
+                    className="chart-axis-line"
+                  />
                   {trend.length > 1 && (
                     <polyline points={accuracyChartPoints(trend)} fill="none" strokeWidth="2" />
                   )}
