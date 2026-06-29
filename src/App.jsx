@@ -19,7 +19,9 @@ import AdminPage from './components/AdminPage'
 
 // Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
-const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25, 30]
+const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25, 30].filter(
+  (count) => clampQuestionCount(count) === count,
+)
 
 function asDateInputValue(date) {
   return date.toISOString().slice(0, 10)
@@ -675,7 +677,7 @@ function App() {
           ) : (
             <QuestionCountSelector
               selectedCount={practiceQuestionCount}
-              onSelect={setPracticeQuestionCount}
+              onSelect={(questionCount) => setPracticeQuestionCount(clampQuestionCount(questionCount))}
             />
           )}
 
@@ -933,7 +935,7 @@ function App() {
               onSelect={(questionCount) =>
                 setCompetitionForm({
                   ...competitionForm,
-                  questionCount,
+                  questionCount: clampQuestionCount(questionCount),
                 })
               }
             />
