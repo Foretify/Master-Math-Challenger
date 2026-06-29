@@ -77,7 +77,6 @@ export function useSessions(userId) {
       return { ok: false, error: questionsLogError.message }
     }
 
-    setSessions((currentSessions) => [...currentSessions, toSessionRecord(sessionRecord)])
     setError('')
     logActivity('session_completed', { session_id: sessionId }).catch((error) => {
       console.error('Failed to log completed session activity.', error)
