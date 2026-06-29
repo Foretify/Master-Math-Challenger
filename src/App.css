@@ -248,6 +248,32 @@ td {
   stroke: var(--brand);
 }
 
+.chart-grid-line {
+  stroke: #cbd5e1;
+  stroke-dasharray: 2 2;
+}
+
+.chart-axis-line {
+  stroke: #94a3b8;
+}
+
+.chart-axis-label,
+.chart-point-label {
+  fill: #475569;
+  font-size: 4px;
+  font-weight: 600;
+}
+
+.chart-point {
+  fill: var(--brand);
+}
+
+.chart-caption {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 640px) {
   .number-pad-key {
     min-height: 3.25rem;
