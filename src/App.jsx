@@ -5,22 +5,21 @@ import {
   buildAccuracyTrend,
   createQuestion,
   getStartingLevel,
-  scoreCompetitionSessions,
   summarizeSession,
   updateLevel,
 } from './lib/game'
-import { newId, readDb, writeDb } from './lib/storage'
+import { supabase } from './lib/supabaseClient'
+import { useAuth } from './hooks/useAuth'
+import { useGroups } from './hooks/useGroups'
+import { useCompetitions } from './hooks/useCompetitions'
+import { useSessions } from './hooks/useSessions'
+import AdminPage from './components/AdminPage'
 
-const SCORING_RULE = 'total_correct_time_tiebreak'
 // Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
 
 function asDateInputValue(date) {
   return date.toISOString().slice(0, 10)
-}
-
-function toDayStamp(isoDate) {
-  return new Date(isoDate).toISOString().slice(0, 10)
 }
 
 function formatMs(ms) {
@@ -31,15 +30,10 @@ function formatAccuracy(value) {
   return `${value.toFixed(1)}%`
 }
 
-async function hashPassword(password) {
-  const encoded = new TextEncoder().encode(password)
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
 function App() {
-  const [db, setDb] = useState(() => readDb())
-  const [currentUserId, setCurrentUserId] = useState(null)
+  const auth = useAuth()
+  const currentUserId = auth.user?.id ?? null
+
   const [screen, setScreen] = useState('dashboard')
   const [authMode, setAuthMode] = useState('login')
   const [authError, setAuthError] = useState('')
@@ -49,7 +43,10 @@ function App() {
     password: '',
     ageOrGrade: '',
   })
+  const [resetPasswordValue, setResetPasswordValue] = useState('')
+  const [resetMessage, setResetMessage] = useState('')
 
+  const [allProfiles, setAllProfiles] = useState([])
   const [groupName, setGroupName] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [competitionForm, setCompetitionForm] = useState({
@@ -62,67 +59,78 @@ function App() {
     selectedUserIds: [],
   })
   const [selectedCompetitionId, setSelectedCompetitionId] = useState('')
+  const [leaderboardRows, setLeaderboardRows] = useState([])
 
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
   const [timerNowMs, setTimerNowMs] = useState(Date.now())
 
-  const currentUser = useMemo(
-    () => db.users.find((user) => user.id === currentUserId) ?? null,
-    [db.users, currentUserId],
-  )
+  const groupsApi = useGroups(currentUserId)
+  const competitionsApi = useCompetitions(currentUserId)
+  const sessionsApi = useSessions(currentUserId)
 
-  const userSessions = useMemo(
-    () => db.sessions.filter((session) => session.userId === currentUserId),
-    [db.sessions, currentUserId],
+  const isPasswordRecovery = window.location.pathname === '/reset-password'
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setAllProfiles([])
+      return
+    }
+
+    supabase
+      .from('profiles')
+      .select('*')
+      .then(({ data }) => setAllProfiles(data ?? []))
+  }, [currentUserId])
+
+  const usersById = useMemo(
+    () => Object.fromEntries(allProfiles.map((profile) => [profile.id, { displayName: profile.display_name }])),
+    [allProfiles],
   )
 
   const userGroupMemberships = useMemo(
-    () => db.groupMembers.filter((member) => member.userId === currentUserId),
-    [db.groupMembers, currentUserId],
+    () => groupsApi.members.filter((member) => member.user_id === currentUserId),
+    [groupsApi.members, currentUserId],
   )
 
   const userGroups = useMemo(
     () =>
-      db.groups.filter((group) =>
-        userGroupMemberships.some((membership) => membership.groupId === group.id),
+      groupsApi.groups.filter((group) =>
+        userGroupMemberships.some((membership) => membership.group_id === group.id),
       ),
-    [db.groups, userGroupMemberships],
+    [groupsApi.groups, userGroupMemberships],
   )
 
   const activeCompetitions = useMemo(() => {
     const now = Date.now()
 
-    return db.competitions.filter((competition) => {
-      const isParticipant = db.competitionParticipants.some(
+    return competitionsApi.competitions.filter((competition) => {
+      const isParticipant = competitionsApi.participants.some(
         (participant) =>
-          participant.competitionId === competition.id && participant.userId === currentUserId,
+          participant.competition_id === competition.id && participant.user_id === currentUserId,
       )
 
       if (!isParticipant) {
         return false
       }
 
-      const start = new Date(competition.startDate).getTime()
-      const end = competition.endDate ? new Date(competition.endDate).getTime() : Infinity
-
+      const start = new Date(competition.start_date).getTime()
+      const end = competition.end_date ? new Date(competition.end_date).getTime() : Infinity
       return now >= start && now <= end
     })
-  }, [db.competitionParticipants, db.competitions, currentUserId])
+  }, [competitionsApi.competitions, competitionsApi.participants, currentUserId])
+
+  const userSessions = sessionsApi.sessions
 
   const todayStats = useMemo(() => {
-    const today = toDayStamp(new Date().toISOString())
-    const todaySessions = userSessions.filter((session) => toDayStamp(session.startedAt) === today)
+    const todayStamp = new Date().toISOString().slice(0, 10)
+    const todaySessions = userSessions.filter(
+      (session) => session.startedAt.slice(0, 10) === todayStamp,
+    )
 
     const sessionCount = todaySessions.length
-    const totalTimeMs = todaySessions.reduce(
-      (sum, session) => sum + session.totalSessionDurationMs,
-      0,
-    )
-    const totalQuestions = todaySessions.reduce(
-      (sum, session) => sum + session.totalQuestions,
-      0,
-    )
+    const totalTimeMs = todaySessions.reduce((sum, session) => sum + session.totalSessionDurationMs, 0)
+    const totalQuestions = todaySessions.reduce((sum, session) => sum + session.totalQuestions, 0)
     const totalCorrect = todaySessions.reduce((sum, session) => sum + session.correctCount, 0)
 
     return {
@@ -133,11 +141,6 @@ function App() {
     }
   }, [userSessions])
 
-  function persist(nextDb) {
-    setDb(nextDb)
-    writeDb(nextDb)
-  }
-
   useEffect(() => {
     if (!sessionState) {
       return
@@ -146,6 +149,18 @@ function App() {
     const timer = setInterval(() => setTimerNowMs(Date.now()), 250)
     return () => clearInterval(timer)
   }, [sessionState])
+
+  const leaderboardCompetitionId =
+    selectedCompetitionId || activeCompetitions[0]?.id || competitionsApi.competitions[0]?.id || ''
+
+  useEffect(() => {
+    if (!leaderboardCompetitionId) {
+      setLeaderboardRows([])
+      return
+    }
+
+    competitionsApi.fetchLeaderboard(leaderboardCompetitionId).then(setLeaderboardRows)
+  }, [leaderboardCompetitionId, competitionsApi])
 
   async function handleAuthSubmit(event) {
     event.preventDefault()
@@ -158,39 +173,11 @@ function App() {
     }
 
     if (authMode === 'login') {
-      const passwordHash = await hashPassword(password)
-      const match = db.users.find((user) => {
-        if (user.email !== email) {
-          return false
-        }
-
-        if (user.passwordHash) {
-          return user.passwordHash === passwordHash
-        }
-
-        return user.password === password
-      })
-
-      if (!match) {
-        setAuthError('Invalid credentials.')
+      const { error } = await auth.signIn({ email, password })
+      if (error) {
+        setAuthError(error.message)
         return
       }
-
-      if (!match.passwordHash) {
-        persist({
-          ...db,
-          users: db.users.map((user) =>
-            user.id === match.id
-              ? (() => {
-                  const { password: _password, ...rest } = user
-                  return { ...rest, passwordHash }
-                })()
-              : user,
-          ),
-        })
-      }
-
-      setCurrentUserId(match.id)
       setAuthError('')
       setScreen('dashboard')
       return
@@ -202,40 +189,58 @@ function App() {
       return
     }
 
-    if (db.users.some((user) => user.email === email)) {
-      setAuthError('That email is already registered.')
+    const { error } = await auth.signUp({
+      email,
+      password,
+      displayName,
+      ageOrGrade: authForm.ageOrGrade.trim(),
+    })
+
+    if (error) {
+      setAuthError(error.message)
       return
     }
 
-    const passwordHash = await hashPassword(password)
-    const user = {
-      id: newId('usr'),
-      displayName,
-      email,
-      passwordHash,
-      avatar: '',
-      ageOrGrade: authForm.ageOrGrade.trim(),
-      createdAt: new Date().toISOString(),
+    setAuthError('')
+    setScreen('dashboard')
+  }
+
+  async function handleForgotPassword() {
+    const email = authForm.email.trim().toLowerCase()
+    if (!email) {
+      setAuthError('Enter your email above, then click "Forgot password?" again.')
+      return
     }
 
-    persist({
-      ...db,
-      users: [...db.users, user],
-    })
+    const { error } = await auth.requestPasswordReset(email)
+    setAuthError(error ? error.message : `Password reset email sent to ${email}.`)
+  }
 
-    setCurrentUserId(user.id)
-    setScreen('dashboard')
-    setAuthError('')
+  async function handleResetPasswordSubmit(event) {
+    event.preventDefault()
+    if (!resetPasswordValue) {
+      return
+    }
+
+    const { error } = await auth.updatePassword(resetPasswordValue)
+    if (error) {
+      setResetMessage(error.message)
+      return
+    }
+
+    setResetMessage('Password updated. You can now use the app.')
+    setResetPasswordValue('')
+    window.history.replaceState({}, '', '/')
   }
 
   function startSession(competitionId = null) {
-    if (!currentUser) {
+    if (!currentUserId) {
       return
     }
 
     const startingLevel = getStartingLevel(userSessions)
     setSessionState({
-      sessionId: newId('ses'),
+      sessionId: globalThis.crypto.randomUUID(),
       competitionId,
       startedAt: new Date().toISOString(),
       currentLevel: startingLevel,
@@ -248,7 +253,7 @@ function App() {
     setScreen('session')
   }
 
-  function submitAnswer(event) {
+  async function submitAnswer(event) {
     event.preventDefault()
 
     if (!sessionState) {
@@ -278,29 +283,17 @@ function App() {
     if (nextResults.length === TOTAL_QUESTIONS) {
       const endedAt = new Date().toISOString()
       const summary = summarizeSession(nextResults, sessionState.startedAt, endedAt)
-      const sessionRecord = {
-        id: sessionState.sessionId,
-        userId: currentUserId,
+
+      await sessionsApi.saveSession({
+        sessionId: sessionState.sessionId,
         competitionId: sessionState.competitionId,
         startedAt: sessionState.startedAt,
         endedAt,
-        ...summary,
-      }
+        summary,
+        results: nextResults,
+      })
 
-      const questionLogs = nextResults.map((result) => ({
-        id: newId('qlog'),
-        sessionId: sessionState.sessionId,
-        ...result,
-      }))
-
-      const nextDb = {
-        ...db,
-        sessions: [...db.sessions, sessionRecord],
-        questionsLog: [...db.questionsLog, ...questionLogs],
-      }
-
-      persist(nextDb)
-      setLastSummary(sessionRecord)
+      setLastSummary({ ...summary, startedAt: sessionState.startedAt, endedAt })
       setSessionState(null)
       setScreen('summary')
       return
@@ -353,143 +346,24 @@ function App() {
 
   function createGroup(event) {
     event.preventDefault()
-    const name = groupName.trim()
-
-    if (!name || !currentUser) {
-      return
-    }
-
-    const group = {
-      id: newId('grp'),
-      name,
-      ownerUserId: currentUser.id,
-      createdAt: new Date().toISOString(),
-    }
-
-    persist({
-      ...db,
-      groups: [...db.groups, group],
-      groupMembers: [
-        ...db.groupMembers,
-        {
-          groupId: group.id,
-          userId: currentUser.id,
-          role: 'admin',
-          joinedAt: new Date().toISOString(),
-        },
-      ],
-    })
-
+    groupsApi.createGroup(groupName)
     setGroupName('')
-  }
-
-  function createInvite(groupId) {
-    const code = newId('INV').replace('_', '-').toUpperCase()
-
-    persist({
-      ...db,
-      groupInvites: [
-        ...db.groupInvites,
-        {
-          id: newId('ginv'),
-          groupId,
-          code,
-          createdByUserId: currentUserId,
-          createdAt: new Date().toISOString(),
-          acceptedByUserId: null,
-        },
-      ],
-    })
   }
 
   function joinGroupByCode(event) {
     event.preventDefault()
-    const code = joinCode.trim().toUpperCase()
-    const invite = db.groupInvites.find(
-      (entry) => entry.code === code && !entry.acceptedByUserId,
-    )
-
-    if (!invite || !currentUserId) {
-      return
-    }
-
-    const alreadyMember = db.groupMembers.some(
-      (member) => member.groupId === invite.groupId && member.userId === currentUserId,
-    )
-
-    const nextMembers = alreadyMember
-      ? db.groupMembers
-      : [
-          ...db.groupMembers,
-          {
-            groupId: invite.groupId,
-            userId: currentUserId,
-            role: 'member',
-            joinedAt: new Date().toISOString(),
-          },
-        ]
-
-    persist({
-      ...db,
-      groupMembers: nextMembers,
-      groupInvites: db.groupInvites.map((entry) =>
-        entry.id === invite.id ? { ...entry, acceptedByUserId: currentUserId } : entry,
-      ),
-    })
-
+    groupsApi.joinGroupByCode(joinCode)
     setJoinCode('')
   }
 
-  function createCompetition(event) {
+  async function createCompetition(event) {
     event.preventDefault()
-    const name = competitionForm.name.trim()
 
-    if (!name || !currentUser) {
-      return
-    }
+    const groupMemberIds = groupsApi.members
+      .filter((member) => member.group_id === competitionForm.groupId)
+      .map((member) => member.user_id)
 
-    let participants = [...competitionForm.selectedUserIds]
-    if (competitionForm.scope === 'group' && competitionForm.groupId) {
-      const groupMemberIds = db.groupMembers
-        .filter((member) => member.groupId === competitionForm.groupId)
-        .map((member) => member.userId)
-
-      participants =
-        competitionForm.visibility === 'group-public' ? groupMemberIds : participants
-    }
-
-    if (!participants.includes(currentUser.id)) {
-      participants.push(currentUser.id)
-    }
-
-    participants = [...new Set(participants)]
-
-    const competition = {
-      id: newId('cmp'),
-      groupId: competitionForm.scope === 'group' ? competitionForm.groupId || null : null,
-      creatorUserId: currentUser.id,
-      name,
-      startDate: new Date(competitionForm.startDate).toISOString(),
-      endDate: competitionForm.endDate
-        ? new Date(competitionForm.endDate).toISOString()
-        : null,
-      scoringRule: SCORING_RULE,
-      visibility:
-        competitionForm.scope === 'group' ? competitionForm.visibility : 'invite-only',
-      createdAt: new Date().toISOString(),
-    }
-
-    const participantsRows = participants.map((userId) => ({
-      competitionId: competition.id,
-      userId,
-      joinedAt: new Date().toISOString(),
-    }))
-
-    persist({
-      ...db,
-      competitions: [...db.competitions, competition],
-      competitionParticipants: [...db.competitionParticipants, ...participantsRows],
-    })
+    const competition = await competitionsApi.createCompetition(competitionForm, groupMemberIds)
 
     setCompetitionForm({
       name: '',
@@ -500,73 +374,10 @@ function App() {
       visibility: 'group-public',
       selectedUserIds: [],
     })
-    setSelectedCompetitionId(competition.id)
-  }
 
-  function joinCompetition(competition) {
-    const alreadyParticipant = db.competitionParticipants.some(
-      (entry) =>
-        entry.competitionId === competition.id && entry.userId === currentUserId,
-    )
-
-    if (alreadyParticipant || !currentUserId) {
-      return
+    if (competition) {
+      setSelectedCompetitionId(competition.id)
     }
-
-    persist({
-      ...db,
-      competitionParticipants: [
-        ...db.competitionParticipants,
-        {
-          competitionId: competition.id,
-          userId: currentUserId,
-          joinedAt: new Date().toISOString(),
-        },
-      ],
-    })
-  }
-
-  function leaderboardForCompetition(competitionId) {
-    const competition = db.competitions.find((item) => item.id === competitionId)
-
-    if (!competition) {
-      return []
-    }
-
-    const start = new Date(competition.startDate).getTime()
-    const end = competition.endDate ? new Date(competition.endDate).getTime() : Infinity
-    const participantIds = db.competitionParticipants
-      .filter((participant) => participant.competitionId === competition.id)
-      .map((participant) => participant.userId)
-
-    const rows = participantIds.map((participantId) => {
-      const sessions = db.sessions.filter((session) => {
-        const started = new Date(session.startedAt).getTime()
-        return (
-          session.userId === participantId &&
-          session.competitionId === competition.id &&
-          started >= start &&
-          started <= end
-        )
-      })
-
-      const score = scoreCompetitionSessions(sessions)
-      const user = db.users.find((item) => item.id === participantId)
-
-      return {
-        userId: participantId,
-        displayName: user?.displayName ?? 'Unknown',
-        ...score,
-      }
-    })
-
-    return rows.sort((a, b) => {
-      if (b.totalCorrect !== a.totalCorrect) {
-        return b.totalCorrect - a.totalCorrect
-      }
-
-      return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
-    })
   }
 
   function getBestSessions() {
@@ -597,7 +408,39 @@ function App() {
       .join(' ')
   }
 
-  if (!currentUser) {
+  if (isPasswordRecovery) {
+    return (
+      <main className="container">
+        <h1>Master Math Challenger</h1>
+        <section className="panel stack">
+          <h2>Choose a new password</h2>
+          <form onSubmit={handleResetPasswordSubmit} className="stack">
+            <label>
+              New password
+              <input
+                type="password"
+                value={resetPasswordValue}
+                onChange={(event) => setResetPasswordValue(event.target.value)}
+                required
+              />
+            </label>
+            {resetMessage && <p className="error">{resetMessage}</p>}
+            <button type="submit">Update password</button>
+          </form>
+        </section>
+      </main>
+    )
+  }
+
+  if (auth.loading) {
+    return (
+      <main className="container">
+        <p>Loading...</p>
+      </main>
+    )
+  }
+
+  if (!currentUserId) {
     return (
       <main className="container">
         <h1>Master Math Challenger</h1>
@@ -654,6 +497,11 @@ function App() {
               {authMode === 'login' ? 'Log in' : 'Sign up'}
             </button>
           </form>
+          {authMode === 'login' && (
+            <button type="button" className="ghost" onClick={handleForgotPassword}>
+              Forgot password?
+            </button>
+          )}
           <button
             type="button"
             className="ghost"
@@ -668,26 +516,26 @@ function App() {
     )
   }
 
-  const usersById = Object.fromEntries(db.users.map((user) => [user.id, user]))
   const bestSessions = getBestSessions()
   const trend = buildAccuracyTrend(userSessions, 12)
-  const leaderboardCompetitionId =
-    selectedCompetitionId || activeCompetitions[0]?.id || db.competitions[0]?.id || ''
-  const leaderboardRows = leaderboardCompetitionId
-    ? leaderboardForCompetition(leaderboardCompetitionId)
-    : []
+  const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
+  if (auth.isAdmin) {
+    tabs.push('admin')
+  }
 
   return (
     <main className="container">
       <header className="header">
         <div>
           <h1>Master Math Challenger</h1>
-          <p className="subtitle">Hi {currentUser.displayName}! Ready for 30 multiplication questions?</p>
+          <p className="subtitle">
+            Hi {auth.profile?.display_name}! Ready for 30 multiplication questions?
+          </p>
         </div>
         <button
           type="button"
           onClick={() => {
-            setCurrentUserId(null)
+            auth.signOut()
             setScreen('dashboard')
           }}
         >
@@ -696,18 +544,16 @@ function App() {
       </header>
 
       <nav className="tabs">
-        {['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats'].map(
-          (tab) => (
-            <button
-              key={tab}
-              type="button"
-              className={screen === tab ? 'active' : ''}
-              onClick={() => setScreen(tab)}
-            >
-              {tab[0].toUpperCase() + tab.slice(1)}
-            </button>
-          ),
-        )}
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={screen === tab ? 'active' : ''}
+            onClick={() => setScreen(tab)}
+          >
+            {tab[0].toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
       </nav>
 
       {screen === 'dashboard' && (
@@ -859,6 +705,7 @@ function App() {
       {screen === 'groups' && (
         <section className="panel stack">
           <h2>Group management</h2>
+          {groupsApi.error && <p className="error">{groupsApi.error}</p>}
           <form onSubmit={createGroup} className="inline-form">
             <input
               placeholder="New group name"
@@ -882,29 +729,29 @@ function App() {
               <p>You are not in any groups yet.</p>
             ) : (
               userGroups.map((group) => {
-                const members = db.groupMembers.filter((member) => member.groupId === group.id)
-                const myMembership = members.find((member) => member.userId === currentUserId)
+                const groupMembers = groupsApi.members.filter((member) => member.group_id === group.id)
+                const myMembership = groupMembers.find((member) => member.user_id === currentUserId)
                 const canInvite =
-                  myMembership?.role === 'admin' || group.ownerUserId === currentUserId
+                  myMembership?.role === 'admin' || group.owner_user_id === currentUserId
 
                 return (
                   <article key={group.id} className="card stack">
                     <h3>{group.name}</h3>
-                    <p>Owner: {usersById[group.ownerUserId]?.displayName ?? 'Unknown'}</p>
+                    <p>Owner: {usersById[group.owner_user_id]?.displayName ?? 'Unknown'}</p>
                     <p>
                       Members:{' '}
-                      {members
-                        .map((member) => usersById[member.userId]?.displayName ?? 'Unknown')
+                      {groupMembers
+                        .map((member) => usersById[member.user_id]?.displayName ?? 'Unknown')
                         .join(', ')}
                     </p>
                     {canInvite && (
-                      <button type="button" onClick={() => createInvite(group.id)}>
+                      <button type="button" onClick={() => groupsApi.createInvite(group.id)}>
                         Create invite code
                       </button>
                     )}
                     <ul>
-                      {db.groupInvites
-                        .filter((invite) => invite.groupId === group.id && !invite.acceptedByUserId)
+                      {groupsApi.invites
+                        .filter((invite) => invite.group_id === group.id && !invite.accepted_by_user_id)
                         .map((invite) => (
                           <li key={invite.id}>{invite.code}</li>
                         ))}
@@ -920,6 +767,7 @@ function App() {
       {screen === 'competitions' && (
         <section className="panel stack">
           <h2>Competition creation</h2>
+          {competitionsApi.error && <p className="error">{competitionsApi.error}</p>}
           <form onSubmit={createCompetition} className="stack">
             <label>
               Competition name
@@ -1000,22 +848,22 @@ function App() {
 
             <fieldset className="stack">
               <legend>Participants</legend>
-              {db.users
-                .filter((user) => user.id !== currentUserId)
-                .map((user) => (
-                  <label key={user.id} className="checkbox-row">
+              {allProfiles
+                .filter((profile) => profile.id !== currentUserId)
+                .map((profile) => (
+                  <label key={profile.id} className="checkbox-row">
                     <input
                       type="checkbox"
-                      checked={competitionForm.selectedUserIds.includes(user.id)}
+                      checked={competitionForm.selectedUserIds.includes(profile.id)}
                       onChange={(event) => {
                         const next = event.target.checked
-                          ? [...competitionForm.selectedUserIds, user.id]
-                          : competitionForm.selectedUserIds.filter((id) => id !== user.id)
+                          ? [...competitionForm.selectedUserIds, profile.id]
+                          : competitionForm.selectedUserIds.filter((id) => id !== profile.id)
 
                         setCompetitionForm({ ...competitionForm, selectedUserIds: next })
                       }}
                     />
-                    {user.displayName}
+                    {profile.display_name}
                   </label>
                 ))}
             </fieldset>
@@ -1026,31 +874,30 @@ function App() {
 
           <h3>Available competitions</h3>
           <div className="stack">
-            {db.competitions.map((competition) => {
-              const isParticipant = db.competitionParticipants.some(
+            {competitionsApi.competitions.map((competition) => {
+              const isParticipant = competitionsApi.participants.some(
                 (participant) =>
-                  participant.competitionId === competition.id && participant.userId === currentUserId,
+                  participant.competition_id === competition.id &&
+                  participant.user_id === currentUserId,
               )
               const canJoinGroupPublic =
                 !isParticipant &&
                 competition.visibility === 'group-public' &&
-                competition.groupId &&
-                userGroupMemberships.some(
-                  (member) => member.groupId === competition.groupId,
-                )
+                competition.group_id &&
+                userGroupMemberships.some((member) => member.group_id === competition.group_id)
 
               return (
                 <article key={competition.id} className="card stack">
                   <h4>{competition.name}</h4>
                   <p>
-                    {new Date(competition.startDate).toLocaleDateString()} -{' '}
-                    {competition.endDate
-                      ? new Date(competition.endDate).toLocaleDateString()
+                    {new Date(competition.start_date).toLocaleDateString()} -{' '}
+                    {competition.end_date
+                      ? new Date(competition.end_date).toLocaleDateString()
                       : 'Ongoing'}
                   </p>
                   <p>{competition.visibility === 'group-public' ? 'Public in group' : 'Invite-only'}</p>
                   {!isParticipant && canJoinGroupPublic && (
-                    <button type="button" onClick={() => joinCompetition(competition)}>
+                    <button type="button" onClick={() => competitionsApi.joinCompetition(competition.id)}>
                       Join competition
                     </button>
                   )}
@@ -1071,8 +918,8 @@ function App() {
               value={leaderboardCompetitionId}
               onChange={(event) => setSelectedCompetitionId(event.target.value)}
             >
-              {db.competitions.length === 0 && <option value="">No competitions yet</option>}
-              {db.competitions.map((competition) => (
+              {competitionsApi.competitions.length === 0 && <option value="">No competitions yet</option>}
+              {competitionsApi.competitions.map((competition) => (
                 <option key={competition.id} value={competition.id}>
                   {competition.name}
                 </option>
@@ -1168,6 +1015,8 @@ function App() {
           </table>
         </section>
       )}
+
+      {screen === 'admin' && auth.isAdmin && <AdminPage />}
     </main>
   )
 }
