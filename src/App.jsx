@@ -103,6 +103,8 @@ function App() {
 
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
+  const [isSavingSession, setIsSavingSession] = useState(false)
+  const [sessionSaveError, setSessionSaveError] = useState('')
   const [timerNowMs, setTimerNowMs] = useState(Date.now())
 
   const groupsApi = useGroups(currentUserId)
@@ -295,6 +297,8 @@ function App() {
       : clampQuestionCount(practiceQuestionCount)
 
     const startingLevel = getStartingLevel(userSessions)
+    setIsSavingSession(false)
+    setSessionSaveError('')
     setSessionState({
       sessionId: globalThis.crypto.randomUUID(),
       competitionId,
@@ -308,6 +312,19 @@ function App() {
       results: [],
     })
     setScreen('session')
+  }
+
+  async function persistCompletedSession(sessionToSave) {
+    setIsSavingSession(true)
+    setSessionSaveError('')
+
+    const saveResult = await sessionsApi.saveSession(sessionToSave)
+
+    if (!saveResult?.ok) {
+      setSessionSaveError(saveResult?.error ?? 'Unable to save your session right now.')
+    }
+
+    setIsSavingSession(false)
   }
 
   async function submitAnswer(event) {
@@ -340,15 +357,14 @@ function App() {
     if (nextResults.length === sessionState.totalQuestions) {
       const endedAt = new Date().toISOString()
       const summary = summarizeSession(nextResults, sessionState.startedAt, endedAt)
-
-      await sessionsApi.saveSession({
+      const completedSession = {
         sessionId: sessionState.sessionId,
         competitionId: sessionState.competitionId,
         startedAt: sessionState.startedAt,
         endedAt,
         summary,
         results: nextResults,
-      })
+      }
 
       setLastSummary({
         ...summary,
@@ -358,6 +374,7 @@ function App() {
       })
       setSessionState(null)
       setScreen('summary')
+      void persistCompletedSession(completedSession)
       return
     }
 
@@ -373,6 +390,8 @@ function App() {
   }
 
   async function reviewPastSession(session) {
+    setIsSavingSession(false)
+    setSessionSaveError('')
     const results = await sessionsApi.fetchSessionResults(session.id)
     setLastSummary({
       totalQuestions: session.totalQuestions,
@@ -791,6 +810,8 @@ function App() {
             <p>Complete a session to see your summary.</p>
           ) : (
             <>
+              {isSavingSession && <p>Saving session...</p>}
+              {sessionSaveError && <p className="error">{sessionSaveError}</p>}
               <p>
                 Score: {lastSummary.correctCount}/{lastSummary.totalQuestions}
               </p>

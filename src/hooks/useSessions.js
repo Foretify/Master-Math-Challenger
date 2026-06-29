@@ -37,7 +37,7 @@ export function useSessions(userId) {
   }, [refresh])
 
   async function saveSession({ sessionId, competitionId, startedAt, endedAt, summary, results }) {
-    const { error: insertError } = await supabase.from('sessions').insert({
+    const sessionRecord = {
       id: sessionId,
       user_id: userId,
       competition_id: competitionId,
@@ -49,12 +49,16 @@ export function useSessions(userId) {
       avg_time_per_question: summary.avgTimePerQuestion,
       difficulty_level_reached: summary.difficultyLevelReached,
       total_session_duration_ms: summary.totalSessionDurationMs,
-    })
+    }
+
+    const { error: insertError } = await supabase.from('sessions').insert(sessionRecord)
 
     if (insertError) {
       setError(insertError.message)
-      return
+      return { ok: false, error: insertError.message }
     }
+
+    setSessions((currentSessions) => [...currentSessions, toSessionRecord(sessionRecord)])
 
     const logs = results.map((result) => ({
       session_id: sessionId,
@@ -68,11 +72,17 @@ export function useSessions(userId) {
       answered_at: result.answeredAt,
     }))
 
-    await supabase.from('questions_log').insert(logs)
+    const { error: questionsLogError } = await supabase.from('questions_log').insert(logs)
+
+    if (questionsLogError) {
+      setError(questionsLogError.message)
+      return { ok: false, error: questionsLogError.message }
+    }
 
     setError('')
-    await logActivity('session_completed', { session_id: sessionId })
-    await refresh()
+    void logActivity('session_completed', { session_id: sessionId })
+    void refresh()
+    return { ok: true }
   }
 
   async function fetchSessionResults(sessionId) {
