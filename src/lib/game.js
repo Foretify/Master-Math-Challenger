@@ -1,4 +1,10 @@
-export const TOTAL_QUESTIONS = 30
+export const DEFAULT_QUESTION_COUNT = 30
+export const MIN_QUESTION_COUNT = 5
+export const MAX_QUESTION_COUNT = 100
+
+export function clampQuestionCount(count) {
+  return Math.max(MIN_QUESTION_COUNT, Math.min(MAX_QUESTION_COUNT, Math.round(count) || DEFAULT_QUESTION_COUNT))
+}
 
 export function clampLevel(level) {
   return Math.max(1, Math.min(10, level))
