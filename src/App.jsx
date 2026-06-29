@@ -66,6 +66,18 @@ function App() {
   const [practiceQuestionCount, setPracticeQuestionCount] = useState(DEFAULT_QUESTION_COUNT)
   const [selectedCompetitionId, setSelectedCompetitionId] = useState('')
   const [leaderboardRows, setLeaderboardRows] = useState([])
+  const [appLeaderboardRows, setAppLeaderboardRows] = useState([])
+  const [appLeaderboardSort, setAppLeaderboardSort] = useState('score')
+
+  const sortedAppLeaderboardRows = useMemo(() => {
+    if (appLeaderboardSort === 'sessions') {
+      return [...appLeaderboardRows].sort((a, b) => b.sessionCount - a.sessionCount)
+    }
+    return [...appLeaderboardRows].sort((a, b) => {
+      if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect
+      return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
+    })
+  }, [appLeaderboardRows, appLeaderboardSort])
 
   const [sessionState, setSessionState] = useState(null)
   const [lastSummary, setLastSummary] = useState(null)
@@ -167,6 +179,15 @@ function App() {
 
     competitionsApi.fetchLeaderboard(leaderboardCompetitionId).then(setLeaderboardRows)
   }, [leaderboardCompetitionId, competitionsApi])
+
+  useEffect(() => {
+    if (!currentUserId) {
+      setAppLeaderboardRows([])
+      return
+    }
+
+    competitionsApi.fetchAppLeaderboard().then(setAppLeaderboardRows)
+  }, [currentUserId, competitionsApi])
 
   async function handleAuthSubmit(event) {
     event.preventDefault()
@@ -985,6 +1006,53 @@ function App() {
 
       {screen === 'leaderboard' && (
         <section className="panel stack">
+          <h2>App rankings</h2>
+          <div className="inline-form">
+            <span>Sort by:</span>
+            <button
+              type="button"
+              className={appLeaderboardSort === 'score' ? 'active' : 'ghost'}
+              onClick={() => setAppLeaderboardSort('score')}
+            >
+              Highest score
+            </button>
+            <button
+              type="button"
+              className={appLeaderboardSort === 'sessions' ? 'active' : 'ghost'}
+              onClick={() => setAppLeaderboardSort('sessions')}
+            >
+              Most sessions
+            </button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>Total correct</th>
+                <th>Sessions</th>
+                <th>Avg time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedAppLeaderboardRows.map((row, index) => (
+                <tr key={row.userId}>
+                  <td>{index + 1}</td>
+                  <td>{row.displayName}</td>
+                  <td>{row.totalCorrect}</td>
+                  <td>{row.sessionCount}</td>
+                  <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
+                </tr>
+              ))}
+              {sortedAppLeaderboardRows.length === 0 && (
+                <tr>
+                  <td colSpan="5">No scores yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
           <h2>Competition leaderboard</h2>
           <label>
             Competition
@@ -1018,7 +1086,7 @@ function App() {
                   <td>{row.displayName}</td>
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
-                  <td>{row.avgTime == null ? '-' : formatMs(row.avgTime)}</td>
+                  <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
                 </tr>
               ))}
               {leaderboardRows.length === 0 && (
