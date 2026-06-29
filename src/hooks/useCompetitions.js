@@ -98,6 +98,30 @@ export function useCompetitions(userId) {
     await refresh()
   }
 
+  async function fetchAppLeaderboard() {
+    const { data, error: rpcError } = await supabase.rpc('get_app_leaderboard')
+
+    if (rpcError) {
+      setError(rpcError.message)
+      return []
+    }
+
+    return (data ?? [])
+      .map((row) => ({
+        userId: row.user_id,
+        displayName: row.display_name,
+        totalCorrect: Number(row.total_correct),
+        sessionCount: Number(row.session_count),
+        avgTime: row.avg_time,
+      }))
+      .sort((a, b) => {
+        if (b.totalCorrect !== a.totalCorrect) {
+          return b.totalCorrect - a.totalCorrect
+        }
+        return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
+      })
+  }
+
   async function fetchLeaderboard(competitionId) {
     if (!competitionId) {
       return []
@@ -128,5 +152,5 @@ export function useCompetitions(userId) {
       })
   }
 
-  return { competitions, participants, error, createCompetition, joinCompetition, fetchLeaderboard, refresh }
+  return { competitions, participants, error, createCompetition, joinCompetition, fetchLeaderboard, fetchAppLeaderboard, refresh }
 }
