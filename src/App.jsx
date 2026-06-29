@@ -34,6 +34,8 @@ function formatAccuracy(value) {
   return `${value.toFixed(1)}%`
 }
 
+const CHART_Y_AXIS_TICKS = [0, 25, 50, 75, 100]
+
 function App() {
   const auth = useAuth()
   const currentUserId = auth.user?.id ?? null
@@ -437,11 +439,15 @@ function App() {
 
     return values
       .map((value, index) => {
-        const x = (index / Math.max(values.length - 1, 1)) * 100
-        const y = 100 - value
+        const x = 12 + (index / Math.max(values.length - 1, 1)) * 84
+        const y = 92 - (value / 100) * 80
         return `${x},${y}`
       })
       .join(' ')
+  }
+
+  function accuracyChartLabelY(y) {
+    return y <= 18 ? y + 7 : y - 4
   }
 
   if (isPasswordRecovery) {
@@ -562,6 +568,13 @@ function App() {
 
   const bestSessions = getBestSessions()
   const trend = buildAccuracyTrend(userSessions, 12)
+  const accuracyChartData = trend.map((value, index) => ({
+    id: `session-${index + 1}`,
+    sessionNumber: index + 1,
+    value,
+    x: 12 + (index / Math.max(trend.length - 1, 1)) * 84,
+    y: 92 - (value / 100) * 80,
+  }))
   const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
@@ -1123,9 +1136,49 @@ function App() {
 
           <div className="stack">
             <h3>Accuracy trend (last {trend.length} sessions)</h3>
-            <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
-              <polyline points={accuracyChartPoints(trend)} fill="none" strokeWidth="2" />
-            </svg>
+            {trend.length === 0 ? (
+              <p>Complete a session to see charted accuracy percentages.</p>
+            ) : (
+              <>
+                <svg viewBox="0 0 100 100" aria-label="Accuracy trend chart" className="chart">
+                  {CHART_Y_AXIS_TICKS.map((tick) => {
+                    const y = 92 - (tick / 100) * 80
+                    return (
+                      <g key={tick}>
+                        <line x1="12" y1={y} x2="96" y2={y} className="chart-grid-line" />
+                        <text x="10" y={y + 1.5} textAnchor="end" className="chart-axis-label">
+                          {tick}%
+                        </text>
+                      </g>
+                    )
+                  })}
+                  <line x1="12" y1="12" x2="12" y2="92" className="chart-axis-line" />
+                  <line x1="12" y1="92" x2="96" y2="92" className="chart-axis-line" />
+                  {trend.length > 1 && (
+                    <polyline points={accuracyChartPoints(trend)} fill="none" strokeWidth="2" />
+                  )}
+                  {accuracyChartData.map((point) => (
+                    <g key={point.id}>
+                      <circle cx={point.x} cy={point.y} r="1.8" className="chart-point" />
+                      <text
+                        x={point.x}
+                        y={accuracyChartLabelY(point.y)}
+                        textAnchor="middle"
+                        className="chart-point-label"
+                      >
+                        {formatAccuracy(point.value)}
+                      </text>
+                      <text x={point.x} y="98" textAnchor="middle" className="chart-axis-label">
+                        {point.sessionNumber}
+                      </text>
+                    </g>
+                  ))}
+                </svg>
+                <p className="chart-caption">
+                  Session numbers run oldest to newest across the chart.
+                </p>
+              </>
+            )}
           </div>
 
           <table>
