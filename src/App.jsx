@@ -797,8 +797,7 @@ function App() {
             <h2>Session summary</h2>
             {lastSummary && (
               <p className="summary-subtitle">
-                Completed {formatDateTime(lastSummary.endedAt)} • {lastSummary.correctCount}/
-                {lastSummary.totalQuestions} correct
+                Completed {formatDateTime(lastSummary.endedAt)} • {lastSummary.correctCount}/{lastSummary.totalQuestions} correct
               </p>
             )}
           </div>
