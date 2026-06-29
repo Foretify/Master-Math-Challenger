@@ -75,5 +75,29 @@ export function useSessions(userId) {
     await refresh()
   }
 
-  return { sessions, error, saveSession, refresh }
+  async function fetchSessionResults(sessionId) {
+    const { data, error: fetchError } = await supabase
+      .from('questions_log')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('answered_at', { ascending: true })
+
+    if (fetchError) {
+      setError(fetchError.message)
+      return []
+    }
+
+    return (data ?? []).map((row) => ({
+      factorA: row.factor_a,
+      factorB: row.factor_b,
+      correctAnswer: row.correct_answer,
+      userAnswer: row.user_answer,
+      isCorrect: row.is_correct,
+      timeTakenMs: row.time_taken_ms,
+      difficultyLevelAtTime: row.difficulty_level_at_time,
+      answeredAt: row.answered_at,
+    }))
+  }
+
+  return { sessions, error, saveSession, fetchSessionResults, refresh }
 }

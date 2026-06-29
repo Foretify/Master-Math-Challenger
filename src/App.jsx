@@ -350,7 +350,12 @@ function App() {
         results: nextResults,
       })
 
-      setLastSummary({ ...summary, startedAt: sessionState.startedAt, endedAt })
+      setLastSummary({
+        ...summary,
+        startedAt: sessionState.startedAt,
+        endedAt,
+        results: nextResults,
+      })
       setSessionState(null)
       setScreen('summary')
       return
@@ -365,6 +370,22 @@ function App() {
       answer: '',
       results: nextResults,
     })
+  }
+
+  async function reviewPastSession(session) {
+    const results = await sessionsApi.fetchSessionResults(session.id)
+    setLastSummary({
+      totalQuestions: session.totalQuestions,
+      correctCount: session.correctCount,
+      accuracyPercent: session.accuracyPercent,
+      avgTimePerQuestion: session.avgTimePerQuestion,
+      difficultyLevelReached: session.difficultyLevelReached,
+      totalSessionDurationMs: session.totalSessionDurationMs,
+      startedAt: session.startedAt,
+      endedAt: session.endedAt,
+      results,
+    })
+    setScreen('summary')
   }
 
   function appendAnswerDigit(digit) {
@@ -782,6 +803,25 @@ function App() {
                   Personal best accuracy: {formatAccuracy(bestSessions.byAccuracy.accuracyPercent)}
                 </p>
               )}
+
+              <h3>Question review</h3>
+              <ul className="question-review-list">
+                {lastSummary.results.map((result, index) => (
+                  <li
+                    key={index}
+                    className={`question-review-item ${result.isCorrect ? 'is-correct' : 'is-wrong'}`}
+                  >
+                    <span className="question-review-text">
+                      {result.factorA} × {result.factorB} = {result.correctAnswer}
+                    </span>
+                    <span className="question-review-answer">
+                      {result.isCorrect
+                        ? 'Correct'
+                        : `You answered ${result.userAnswer ?? '(blank)'}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </>
           )}
         </section>
@@ -1135,6 +1175,7 @@ function App() {
                 <th>Accuracy</th>
                 <th>Avg time</th>
                 <th>Level</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -1150,6 +1191,11 @@ function App() {
                     <td>{formatAccuracy(session.accuracyPercent)}</td>
                     <td>{formatMs(session.avgTimePerQuestion)}</td>
                     <td>{session.difficultyLevelReached}</td>
+                    <td>
+                      <button type="button" onClick={() => reviewPastSession(session)}>
+                        Review
+                      </button>
+                    </td>
                   </tr>
                 ))}
             </tbody>
