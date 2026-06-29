@@ -32,6 +32,22 @@ export default function AdminPage() {
     refresh()
   }, [])
 
+  async function deleteUser(user) {
+    if (!window.confirm(`Delete user "${user.display_name}" (${user.email})? This cannot be undone.`)) {
+      return
+    }
+
+    const { error } = await supabase.rpc('admin_delete_user', { target_user_id: user.id })
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    await logActivity('admin_user_deleted', { target_user_id: user.id })
+    setMessage(`User ${user.email} has been deleted.`)
+    refresh()
+  }
+
   async function sendPasswordReset(user) {
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
       redirectTo: `${window.location.origin}/reset-password`,
