@@ -816,7 +816,7 @@ function App() {
                 </p>
               )}
               {sessionSaveError && (
-                <p className="error" role="alert" aria-live="assertive">
+                <p className="error" role="alert">
                   {sessionSaveError}
                 </p>
               )}
