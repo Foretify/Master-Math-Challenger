@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { logActivity } from '../lib/activityLog'
+import { clampQuestionCount } from '../lib/game'
 
 const SCORING_RULE = 'total_correct_time_tiebreak'
 
@@ -57,6 +58,7 @@ export function useCompetitions(userId) {
         end_date: form.endDate ? new Date(form.endDate).toISOString() : null,
         scoring_rule: SCORING_RULE,
         visibility: form.scope === 'group' ? form.visibility : 'invite-only',
+        question_count: clampQuestionCount(form.questionCount),
       })
       .select()
       .single()

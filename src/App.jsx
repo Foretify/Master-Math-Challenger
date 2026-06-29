@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import logo from './assets/logo-512.png'
 import {
-  TOTAL_QUESTIONS,
+  DEFAULT_QUESTION_COUNT,
+  MAX_QUESTION_COUNT,
+  MIN_QUESTION_COUNT,
   buildAccuracyTrend,
+  clampQuestionCount,
   createQuestion,
   getStartingLevel,
   summarizeSession,
@@ -58,7 +61,9 @@ function App() {
     groupId: '',
     visibility: 'group-public',
     selectedUserIds: [],
+    questionCount: DEFAULT_QUESTION_COUNT,
   })
+  const [practiceQuestionCount, setPracticeQuestionCount] = useState(DEFAULT_QUESTION_COUNT)
   const [selectedCompetitionId, setSelectedCompetitionId] = useState('')
   const [leaderboardRows, setLeaderboardRows] = useState([])
 
@@ -239,10 +244,18 @@ function App() {
       return
     }
 
+    const competition = competitionId
+      ? competitionsApi.competitions.find((entry) => entry.id === competitionId)
+      : null
+    const totalQuestions = competition
+      ? clampQuestionCount(competition.question_count)
+      : clampQuestionCount(practiceQuestionCount)
+
     const startingLevel = getStartingLevel(userSessions)
     setSessionState({
       sessionId: globalThis.crypto.randomUUID(),
       competitionId,
+      totalQuestions,
       startedAt: new Date().toISOString(),
       currentLevel: startingLevel,
       questionIndex: 1,
@@ -281,7 +294,7 @@ function App() {
     const nextResults = [...sessionState.results, questionResult]
     const nextLevel = updateLevel(sessionState.currentLevel, isCorrect)
 
-    if (nextResults.length === TOTAL_QUESTIONS) {
+    if (nextResults.length === sessionState.totalQuestions) {
       const endedAt = new Date().toISOString()
       const summary = summarizeSession(nextResults, sessionState.startedAt, endedAt)
 
@@ -374,6 +387,7 @@ function App() {
       groupId: '',
       visibility: 'group-public',
       selectedUserIds: [],
+      questionCount: DEFAULT_QUESTION_COUNT,
     })
 
     if (competition) {
@@ -608,6 +622,33 @@ function App() {
             </select>
           </label>
 
+          {selectedCompetitionId ? (
+            <p>
+              This competition's owner set the session length to{' '}
+              {clampQuestionCount(
+                activeCompetitions.find((competition) => competition.id === selectedCompetitionId)
+                  ?.question_count,
+              )}{' '}
+              questions.
+            </p>
+          ) : (
+            <label>
+              Questions per session
+              <input
+                type="number"
+                min={MIN_QUESTION_COUNT}
+                max={MAX_QUESTION_COUNT}
+                value={practiceQuestionCount}
+                onChange={(event) =>
+                  setPracticeQuestionCount(Number(event.target.value) || DEFAULT_QUESTION_COUNT)
+                }
+                onBlur={(event) =>
+                  setPracticeQuestionCount(clampQuestionCount(Number(event.target.value)))
+                }
+              />
+            </label>
+          )}
+
           <button
             type="button"
             onClick={() => startSession(selectedCompetitionId || null)}
@@ -625,7 +666,7 @@ function App() {
           ) : (
             <>
               <p>
-                Question {sessionState.questionIndex}/{TOTAL_QUESTIONS} • Level{' '}
+                Question {sessionState.questionIndex}/{sessionState.totalQuestions} • Level{' '}
                 {sessionState.currentQuestion.level}
               </p>
               <p className="question">
@@ -854,6 +895,27 @@ function App() {
                 value={competitionForm.endDate}
                 onChange={(event) =>
                   setCompetitionForm({ ...competitionForm, endDate: event.target.value })
+                }
+              />
+            </label>
+            <label>
+              Questions per session
+              <input
+                type="number"
+                min={MIN_QUESTION_COUNT}
+                max={MAX_QUESTION_COUNT}
+                value={competitionForm.questionCount}
+                onChange={(event) =>
+                  setCompetitionForm({
+                    ...competitionForm,
+                    questionCount: Number(event.target.value) || DEFAULT_QUESTION_COUNT,
+                  })
+                }
+                onBlur={(event) =>
+                  setCompetitionForm({
+                    ...competitionForm,
+                    questionCount: clampQuestionCount(Number(event.target.value)),
+                  })
                 }
               />
             </label>
