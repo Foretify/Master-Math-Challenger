@@ -276,7 +276,7 @@ function App() {
         return
       }
       setAuthError('')
-      setScreen('dashboard')
+      setScreen('competitions')
       return
     }
 
@@ -661,7 +661,7 @@ function App() {
     sessionNumber: index + 1,
     accuracy: Number(value.toFixed(1)),
   }))
-  const tabs = ['dashboard', 'session', 'summary', 'groups', 'competitions', 'leaderboard', 'stats']
+  const tabs = ['competitions', 'dashboard', 'session', 'summary', 'groups', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
   }
@@ -682,7 +682,7 @@ function App() {
           type="button"
           onClick={() => {
             auth.signOut()
-            setScreen('dashboard')
+            setScreen('competitions')
           }}
         >
           Log out
@@ -1116,7 +1116,7 @@ function App() {
           </form>
 
           <h3>Available competitions</h3>
-          <div className="stack">
+          <div className="competition-grid">
             {competitionsApi.competitions.map((competition) => {
               const isParticipant = competitionsApi.participants.some(
                 (participant) =>
@@ -1128,27 +1128,178 @@ function App() {
                 competition.visibility === 'group-public' &&
                 competition.group_id &&
                 userGroupMemberships.some((member) => member.group_id === competition.group_id)
+              const status = getCompetitionStatus(competition)
 
               return (
-                <article key={competition.id} className="card stack">
-                  <h4>{competition.name}</h4>
-                  <p>
+                <article
+                  key={competition.id}
+                  className={`competition-card is-${status}`}
+                  onClick={() => viewCompetition(competition.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      viewCompetition(competition.id)
+                    }
+                  }}
+                >
+                  <div className="competition-card-header">
+                    <h4>{competition.name}</h4>
+                    <span className={`competition-status-badge is-${status}`}>
+                      {status === 'active' ? 'Active' : status === 'upcoming' ? 'Upcoming' : 'Ended'}
+                    </span>
+                  </div>
+                  <p className="competition-card-dates">
                     {new Date(competition.start_date).toLocaleDateString()} -{' '}
                     {competition.end_date
                       ? new Date(competition.end_date).toLocaleDateString()
                       : 'Ongoing'}
                   </p>
-                  <p>{competition.visibility === 'group-public' ? 'Public in group' : 'Invite-only'}</p>
-                  {!isParticipant && canJoinGroupPublic && (
-                    <button type="button" onClick={() => competitionsApi.joinCompetition(competition.id)}>
-                      Join competition
-                    </button>
-                  )}
-                  {isParticipant && <p>You are participating.</p>}
+                  <p className="competition-card-visibility">
+                    {competition.visibility === 'group-public' ? 'Public in group' : 'Invite-only'}
+                  </p>
+                  <div className="competition-card-footer">
+                    {isParticipant ? (
+                      <span className="competition-card-tag">You're in</span>
+                    ) : canJoinGroupPublic ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          competitionsApi.joinCompetition(competition.id)
+                        }}
+                      >
+                        Join competition
+                      </button>
+                    ) : (
+                      <span className="competition-card-tag">Invite-only</span>
+                    )}
+                    <span className="competition-card-link">View stats →</span>
+                  </div>
                 </article>
               )
             })}
           </div>
+        </section>
+      )}
+
+      {screen === 'competitionDetail' && (
+        <section className="panel stack">
+          {(() => {
+            const competition = competitionsApi.competitions.find(
+              (entry) => entry.id === viewingCompetitionId,
+            )
+
+            if (!competition) {
+              return (
+                <>
+                  <h2>Competition not found</h2>
+                  <button type="button" onClick={() => setScreen('competitions')}>
+                    Back to competitions
+                  </button>
+                </>
+              )
+            }
+
+            const isParticipant = competitionsApi.participants.some(
+              (participant) =>
+                participant.competition_id === competition.id &&
+                participant.user_id === currentUserId,
+            )
+            const status = getCompetitionStatus(competition)
+            const groupName = competition.group_id
+              ? groupsApi.groups.find((group) => group.id === competition.group_id)?.name
+              : null
+
+            return (
+              <>
+                <div className="summary-header">
+                  <h2>{competition.name}</h2>
+                  <p className="summary-subtitle">
+                    <span className={`competition-status-badge is-${status}`}>
+                      {status === 'active' ? 'Active' : status === 'upcoming' ? 'Upcoming' : 'Ended'}
+                    </span>{' '}
+                    {new Date(competition.start_date).toLocaleDateString()} -{' '}
+                    {competition.end_date
+                      ? new Date(competition.end_date).toLocaleDateString()
+                      : 'Ongoing'}
+                  </p>
+                </div>
+
+                <div className="summary-stat-grid">
+                  <article className="summary-stat-card">
+                    <p className="summary-card-label">Visibility</p>
+                    <p className="summary-card-value">
+                      {competition.visibility === 'group-public' ? 'Group' : 'Invite-only'}
+                    </p>
+                    <p className="summary-card-detail">{groupName ?? 'No group attached'}</p>
+                  </article>
+                  <article className="summary-stat-card">
+                    <p className="summary-card-label">Questions per session</p>
+                    <p className="summary-card-value">{clampQuestionCount(competition.question_count)}</p>
+                    <p className="summary-card-detail">Set by the competition creator</p>
+                  </article>
+                  <article className="summary-stat-card">
+                    <p className="summary-card-label">Participants</p>
+                    <p className="summary-card-value">
+                      {
+                        competitionsApi.participants.filter(
+                          (participant) => participant.competition_id === competition.id,
+                        ).length
+                      }
+                    </p>
+                    <p className="summary-card-detail">Joined this competition</p>
+                  </article>
+                </div>
+
+                {isParticipant ? (
+                  <button type="button" onClick={() => startSession(competition.id)}>
+                    Start a session for this competition
+                  </button>
+                ) : (
+                  <p>Join this competition from the competitions list to compete.</p>
+                )}
+
+                <h3>Leaderboard</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Player</th>
+                      <th>Total correct</th>
+                      <th>Sessions</th>
+                      <th>Avg time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {competitionDetailRows.map((row, index) => (
+                      <tr key={row.userId}>
+                        <td>{index + 1}</td>
+                        <td>{row.displayName}</td>
+                        <td>{row.totalCorrect}</td>
+                        <td>{row.sessionCount}</td>
+                        <td>
+                          {row.avgTime === null || row.avgTime === undefined
+                            ? '-'
+                            : formatMs(row.avgTime)}
+                        </td>
+                      </tr>
+                    ))}
+                    {competitionDetailRows.length === 0 && (
+                      <tr>
+                        <td colSpan="5">No scores yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+
+                <button type="button" className="ghost" onClick={() => setScreen('competitions')}>
+                  Back to competitions
+                </button>
+              </>
+            )
+          })()}
         </section>
       )}
 
