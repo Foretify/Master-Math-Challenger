@@ -35,6 +35,13 @@ function formatAccuracy(value) {
   return `${value.toFixed(1)}%`
 }
 
+function formatDateTime(value) {
+  return new Date(value).toLocaleString([], {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 const CHART_Y_AXIS_TICKS = [0, 25, 50, 75, 100]
 const CHART_LEFT_EDGE = 12
 const CHART_TOP_EDGE = 12
@@ -823,8 +830,15 @@ function App() {
       )}
 
       {screen === 'summary' && (
-        <section className="panel stack">
-          <h2>Session summary</h2>
+        <section className="panel stack summary-panel">
+          <div className="summary-header">
+            <h2>Session summary</h2>
+            {lastSummary && (
+              <p className="summary-subtitle">
+                Completed {formatDateTime(lastSummary.endedAt)} • {lastSummary.correctCount}/{lastSummary.totalQuestions} correct
+              </p>
+            )}
+          </div>
           {!lastSummary ? (
             <p>Complete a session to see your summary.</p>
           ) : (
@@ -839,20 +853,53 @@ function App() {
                   {sessionSaveError}
                 </p>
               )}
-              <p>
-                Score: {lastSummary.correctCount}/{lastSummary.totalQuestions}
-              </p>
-              <p>Accuracy: {formatAccuracy(lastSummary.accuracyPercent)}</p>
-              <p>Average answer time: {formatMs(lastSummary.avgTimePerQuestion)}</p>
-              <p>Highest level reached: {lastSummary.difficultyLevelReached}</p>
-              <p>Session duration: {formatMs(lastSummary.totalSessionDurationMs)}</p>
-              {bestSessions && (
-                <p>
-                  Personal best accuracy: {formatAccuracy(bestSessions.byAccuracy.accuracyPercent)}
-                </p>
-              )}
+              <div className="summary-stat-grid">
+                <article className="summary-stat-card is-highlight">
+                  <p className="summary-card-label">Score</p>
+                  <p className="summary-card-value">
+                    {lastSummary.correctCount}/{lastSummary.totalQuestions}
+                  </p>
+                  <p className="summary-card-detail">Correct answers this session</p>
+                </article>
+                <article className="summary-stat-card">
+                  <p className="summary-card-label">Accuracy</p>
+                  <p className="summary-card-value">
+                    {formatAccuracy(lastSummary.accuracyPercent)}
+                  </p>
+                  <p className="summary-card-detail">Across all questions</p>
+                </article>
+                <article className="summary-stat-card">
+                  <p className="summary-card-label">Average answer time</p>
+                  <p className="summary-card-value">{formatMs(lastSummary.avgTimePerQuestion)}</p>
+                  <p className="summary-card-detail">Per question</p>
+                </article>
+                <article className="summary-stat-card">
+                  <p className="summary-card-label">Highest level</p>
+                  <p className="summary-card-value">{lastSummary.difficultyLevelReached}</p>
+                  <p className="summary-card-detail">Hardest level reached</p>
+                </article>
+                <article className="summary-stat-card">
+                  <p className="summary-card-label">Session duration</p>
+                  <p className="summary-card-value">
+                    {formatMs(lastSummary.totalSessionDurationMs)}
+                  </p>
+                  <p className="summary-card-detail">From first question to finish</p>
+                </article>
+                {bestSessions && (
+                  <article className="summary-stat-card">
+                    <p className="summary-card-label">Personal best accuracy</p>
+                    <p className="summary-card-value">
+                      {formatAccuracy(bestSessions.byAccuracy.accuracyPercent)}
+                    </p>
+                    <p className="summary-card-detail">Best completed session so far</p>
+                  </article>
+                )}
+              </div>
 
-              <h3>Question review</h3>
+              <div className="summary-review-header">
+                <h3>Question review</h3>
+                <p>Green cards are correct. Red cards show where to practice more.</p>
+              </div>
               <ul className="question-review-list">
                 {lastSummary.results.map((result, index) => (
                   <li
@@ -866,6 +913,9 @@ function App() {
                       {result.isCorrect
                         ? 'Correct'
                         : `You answered ${result.userAnswer ?? '(blank)'}`}
+                    </span>
+                    <span className="question-review-answer">
+                      Level {result.difficultyLevelAtTime} • {formatMs(result.timeTakenMs)}
                     </span>
                   </li>
                 ))}
