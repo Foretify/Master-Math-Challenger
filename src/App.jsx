@@ -3,8 +3,6 @@ import './App.css'
 import logo from './assets/logo-512.png'
 import {
   DEFAULT_QUESTION_COUNT,
-  MAX_QUESTION_COUNT,
-  MIN_QUESTION_COUNT,
   buildAccuracyTrend,
   clampQuestionCount,
   createQuestion,
@@ -21,6 +19,9 @@ import AdminPage from './components/AdminPage'
 
 // Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
+const QUESTION_COUNT_OPTIONS = [10, 15, 20, 25, 30].filter(
+  (count) => clampQuestionCount(count) === count,
+)
 
 function asDateInputValue(date) {
   return date.toISOString().slice(0, 10)
@@ -46,6 +47,27 @@ const CHART_X_AXIS_LABEL_Y = 98
 const CHART_LABEL_TOP_THRESHOLD = 18
 const CHART_LABEL_BELOW_OFFSET = 7
 const CHART_LABEL_ABOVE_OFFSET = 4
+
+function QuestionCountSelector({ selectedCount, onSelect }) {
+  return (
+    <div className="stack">
+      <span className="field-label">Questions per session</span>
+      <div className="choice-buttons" role="group" aria-label="Questions per session">
+        {QUESTION_COUNT_OPTIONS.map((count) => (
+          <button
+            key={count}
+            type="button"
+            className={selectedCount === count ? 'choice-button active' : 'choice-button ghost'}
+            aria-pressed={selectedCount === count}
+            onClick={() => onSelect(count)}
+          >
+            {count}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function App() {
   const auth = useAuth()
@@ -672,21 +694,10 @@ function App() {
               questions.
             </p>
           ) : (
-            <label>
-              Questions per session
-              <input
-                type="number"
-                min={MIN_QUESTION_COUNT}
-                max={MAX_QUESTION_COUNT}
-                value={practiceQuestionCount}
-                onChange={(event) =>
-                  setPracticeQuestionCount(Number(event.target.value) || DEFAULT_QUESTION_COUNT)
-                }
-                onBlur={(event) =>
-                  setPracticeQuestionCount(clampQuestionCount(Number(event.target.value)))
-                }
-              />
-            </label>
+            <QuestionCountSelector
+              selectedCount={practiceQuestionCount}
+              onSelect={(questionCount) => setPracticeQuestionCount(clampQuestionCount(questionCount))}
+            />
           )}
 
           <button
@@ -938,27 +949,15 @@ function App() {
                 }
               />
             </label>
-            <label>
-              Questions per session
-              <input
-                type="number"
-                min={MIN_QUESTION_COUNT}
-                max={MAX_QUESTION_COUNT}
-                value={competitionForm.questionCount}
-                onChange={(event) =>
-                  setCompetitionForm({
-                    ...competitionForm,
-                    questionCount: Number(event.target.value) || DEFAULT_QUESTION_COUNT,
-                  })
-                }
-                onBlur={(event) =>
-                  setCompetitionForm({
-                    ...competitionForm,
-                    questionCount: clampQuestionCount(Number(event.target.value)),
-                  })
-                }
-              />
-            </label>
+            <QuestionCountSelector
+              selectedCount={competitionForm.questionCount}
+              onSelect={(questionCount) =>
+                setCompetitionForm({
+                  ...competitionForm,
+                  questionCount: clampQuestionCount(questionCount),
+                })
+              }
+            />
 
             <fieldset className="stack">
               <legend>Participants</legend>
