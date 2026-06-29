@@ -184,20 +184,80 @@ fieldset {
 
 .question-review-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+.summary-panel {
+  gap: 1rem;
+}
+
+.summary-header h2,
+.summary-review-header h3 {
+  margin: 0;
+}
+
+.summary-subtitle,
+.summary-review-header p {
+  margin: 0.25rem 0 0;
+  color: #4b5563;
+}
+
+.summary-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.summary-stat-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.05);
+}
+
+.summary-stat-card.is-highlight {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fdba74;
+}
+
+.summary-card-label,
+.summary-card-detail {
+  margin: 0;
+}
+
+.summary-card-label {
+  color: #9a3412;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summary-card-value {
+  margin: 0.35rem 0;
+  color: #111827;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.summary-card-detail {
+  color: #475569;
+  font-size: 0.95rem;
+}
+
 .question-review-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.5rem 0.75rem;
+  padding: 0.85rem;
   font-weight: 600;
 }
 
@@ -215,7 +275,7 @@ fieldset {
 
 .question-review-answer {
   font-weight: 400;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 
 .checkbox-row {
@@ -249,6 +309,15 @@ td {
 }
 
 @media (max-width: 640px) {
+  .container {
+    padding: 0.75rem;
+  }
+
+  .summary-stat-grid,
+  .question-review-list {
+    grid-template-columns: 1fr;
+  }
+
   .number-pad-key {
     min-height: 3.25rem;
     font-size: 1.25rem;
