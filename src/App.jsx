@@ -374,7 +374,7 @@ function App() {
       })
       setSessionState(null)
       setScreen('summary')
-      void persistCompletedSession(completedSession)
+      persistCompletedSession(completedSession)
       return
     }
 
