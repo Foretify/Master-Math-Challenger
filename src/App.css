@@ -127,6 +127,10 @@ label {
   font-weight: 600;
 }
 
+.field-label {
+  font-weight: 600;
+}
+
 input,
 select,
 fieldset {
@@ -134,6 +138,17 @@ fieldset {
   border-radius: 8px;
   padding: 0.5rem;
   background: #fff;
+}
+
+.choice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.choice-button.active {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
 }
 
 .question {
