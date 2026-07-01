@@ -807,14 +807,22 @@ tr.is-me td { background: #fff7ed; }
     font-size: 0.45rem;
   }
 
-  /* Session history table — horizontal scroll */
+  /* All tables — horizontal scroll wrapper */
+  .table-scroll-wrap,
   .session-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
   }
 
   table {
-    min-width: 480px;
+    min-width: 520px;
+    font-size: 0.82rem;
+  }
+
+  th, td {
+    padding: 0.4rem 0.5rem;
+    white-space: nowrap;
   }
 
   /* Summary stat grid — 2 columns on mobile instead of 1 */
