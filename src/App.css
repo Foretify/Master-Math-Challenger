@@ -18,6 +18,17 @@
   align-items: center;
 }
 
+.header--centered {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.header--centered h1 {
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  white-space: nowrap;
+}
+
 h1 {
   display: flex;
   align-items: center;
@@ -55,6 +66,155 @@ h1 {
 .subtitle {
   margin-top: 0;
   color: #4b5563;
+}
+
+/*
+ * Robot crop helper — logo-512.png is square; robot body occupies the top ~58%.
+ * Using background-image + background-size lets us show exactly that portion.
+ * Container width W → background-size: W auto (image fills width, proportional height)
+ * Container height = W * 0.58 → bars are hidden below overflow: hidden boundary.
+ */
+.robot-crop {
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% auto;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Auth robot animation */
+.auth-robot-runway {
+  position: relative;
+  height: 2.5rem;
+  overflow: hidden;
+  margin: 0.25rem 0;
+}
+
+.auth-robot-bounce {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  animation:
+    robot-run 4s ease-in-out 0.8s 1 forwards,
+    robot-bounce 0.45s ease-in-out 0.8s 9 forwards;
+}
+
+/* Main page robot runway — loops */
+.main-robot-runway {
+  position: relative;
+  height: 2.75rem;
+  overflow: hidden;
+  width: 100%;
+  margin: 0.4rem 0 0;
+}
+
+.main-robot-bounce {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  animation:
+    robot-run 5s ease-in-out 1.5s infinite,
+    robot-bounce 0.4s ease-in-out 1.5s infinite;
+}
+
+@keyframes robot-run {
+  0% {
+    transform: translateX(-50px) scaleX(1);
+    opacity: 0;
+  }
+  5% { opacity: 1; }
+  48% { transform: translateX(calc(50vw - 20px)) scaleX(1); }
+  52% { transform: translateX(calc(50vw + 20px)) scaleX(-1) rotate(360deg); }
+  95% {
+    transform: translateX(calc(100vw + 60px)) scaleX(-1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 60px)) scaleX(-1);
+    opacity: 0;
+  }
+}
+
+@keyframes robot-bounce {
+  0%, 100% { bottom: 0; }
+  30% { bottom: 0.55rem; }
+  60% { bottom: 0; }
+  80% { bottom: 0.3rem; }
+}
+
+/* Speech bubble */
+.header-speech-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 0.1rem;
+}
+
+.header-robot-wrap {
+  width: 3rem;
+  height: 3rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  flex-shrink: 0;
+}
+
+.header-robot-wrap,
+.header-speech-bubble {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.header-robot-wrap:hover { transform: scale(1.15) rotate(-5deg); }
+.header-speech-bubble:hover { transform: scale(1.01); }
+
+.header-speech-bubble {
+  position: relative;
+  margin: 0;
+  background: #fff7ed;
+  border: 1.5px solid #fdba74;
+  border-radius: 14px;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--brand);
+  font-family: Georgia, 'Times New Roman', serif;
+  max-width: 34rem;
+  text-align: left;
+}
+
+.header-speech-bubble::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 8px 10px 8px 0;
+  border-style: solid;
+  border-color: transparent #fdba74 transparent transparent;
+}
+
+.header-speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 7px 9px 7px 0;
+  border-style: solid;
+  border-color: transparent #fff7ed transparent transparent;
 }
 
 /* Auth page tagline */
@@ -112,15 +272,6 @@ h1 {
   border-color: var(--brand);
 }
 
-/* Header greeting row */
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-top: 0.15rem;
-}
-
 .header-greeting {
   margin: 0;
   font-size: 0.95rem;
@@ -130,20 +281,19 @@ h1 {
   font-family: Georgia, 'Times New Roman', serif;
 }
 
-.logout-btn {
-  padding: 0.35rem 0.85rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 8px;
+.logout-tab-btn {
+  margin-left: auto;
   background: transparent;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
+  border: 1px solid var(--brand);
+  color: var(--brand);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
 }
 
-.logout-btn:hover {
+.logout-tab-btn:hover {
   background: #fee2e2;
   border-color: #fca5a5;
   color: #991b1b;
