@@ -616,7 +616,7 @@ function App() {
         <h1 className="centered-title">
           Master Math Challenger
         </h1>
-        <p className="subtitle">Family multiplication competitions with adaptive practice.</p>
+        <p className="auth-tagline">Because knowing 7 x 8 = 56 can change your life.</p>
 
         <section className="panel">
           <h2>{authMode === 'login' ? 'Log in' : 'Create account'}</h2>
@@ -665,24 +665,26 @@ function App() {
               </label>
             )}
             {authError && <p className="error">{authError}</p>}
-            <button type="submit">
+            <button type="submit" className="auth-btn-primary">
               {authMode === 'login' ? 'Log in' : 'Sign up'}
             </button>
           </form>
-          {authMode === 'login' && (
-            <button type="button" className="ghost" onClick={handleForgotPassword}>
-              Forgot password?
+          <div className="auth-btn-row">
+            {authMode === 'login' && (
+              <button type="button" className="auth-btn-ghost" onClick={handleForgotPassword}>
+                Forgot password?
+              </button>
+            )}
+            <button
+              type="button"
+              className="auth-btn-ghost"
+              onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+            >
+              {authMode === 'login'
+                ? 'Need an account? Sign up'
+                : 'Already have an account? Log in'}
             </button>
-          )}
-          <button
-            type="button"
-            className="ghost"
-            onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-          >
-            {authMode === 'login'
-              ? 'Need an account? Sign up'
-              : 'Already have an account? Log in'}
-          </button>
+          </div>
         </section>
       </main>
     )
@@ -713,19 +715,31 @@ function App() {
             <img src={logo} alt="" className="app-logo" />
             Master Math Challenger
           </h1>
-          <p className="subtitle">
-            Hi {auth.profile?.display_name}! Ready for 30 multiplication questions?
-          </p>
+          <div className="header-meta">
+            <p className="header-greeting">
+              {(() => {
+                const name = auth.profile?.display_name ?? 'Challenger'
+                const hour = new Date().getHours()
+                const greetings = hour < 12
+                  ? [`Rise and multiply, ${name}!`, `Good morning, ${name}. Time to crunch some numbers.`]
+                  : hour < 17
+                  ? [`Afternoon, ${name}. Those times tables won't practice themselves.`, `Hey ${name}, ready to make a calculator jealous?`]
+                  : [`Evening, ${name}. One more session before your brain clocks out.`, `Look who's back, ${name}. The multiplication table missed you.`]
+                return greetings[Math.floor(Math.random() * greetings.length)]
+              })()}
+            </p>
+            <button
+              type="button"
+              className="logout-btn"
+              onClick={() => {
+                auth.signOut()
+                setScreen('competitions')
+              }}
+            >
+              Log out
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            auth.signOut()
-            setScreen('competitions')
-          }}
-        >
-          Log out
-        </button>
       </header>
 
       <nav className="tabs">
