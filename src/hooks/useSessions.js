@@ -11,7 +11,9 @@ function toSessionRecord(row) {
     endedAt: row.ended_at,
     totalQuestions: row.total_questions,
     correctCount: row.correct_count,
-    accuracyPercent: row.accuracy_percent,
+    accuracyPercent: row.accuracy_percent != null
+      ? row.accuracy_percent
+      : (row.total_questions > 0 ? Number(((row.correct_count / row.total_questions) * 100).toFixed(1)) : 0),
     avgTimePerQuestion: row.avg_time_per_question,
     difficultyLevelReached: row.difficulty_level_reached,
     totalSessionDurationMs: row.total_session_duration_ms,
