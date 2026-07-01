@@ -1929,13 +1929,13 @@ function App() {
               <div className="heatmap-wrap" role="table" aria-label="Multiplication facts heatmap">
                 <div className="heatmap-grid">
                   <div className="heatmap-corner" />
-                  {Array.from({ length: 12 }, (_, i) => (
+                  {Array.from({ length: 20 }, (_, i) => (
                     <div key={i} className="heatmap-header">{i + 1}</div>
                   ))}
-                  {Array.from({ length: 12 }, (_, rowIdx) => (
+                  {Array.from({ length: 20 }, (_, rowIdx) => (
                     <>
                       <div key={`row-${rowIdx}`} className="heatmap-header">{rowIdx + 1}</div>
-                      {Array.from({ length: 12 }, (_, colIdx) => {
+                      {Array.from({ length: 20 }, (_, colIdx) => {
                         const a = rowIdx + 1
                         const b = colIdx + 1
                         const cell = heatmapGrid[`${a}-${b}`] ?? heatmapGrid[`${b}-${a}`]
@@ -1964,6 +1964,7 @@ function App() {
             </div>
           )}
 
+          <div className="session-table-wrap">
           <table>
             <thead>
               <tr>
@@ -1997,6 +1998,7 @@ function App() {
                 ))}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 

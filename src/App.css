@@ -653,8 +653,8 @@ td {
 
 .heatmap-grid {
   display: grid;
-  /* 13 equal columns: 1 row-label + 12 factor columns */
-  grid-template-columns: repeat(13, minmax(0, 1fr));
+  /* 21 equal columns: 1 row-label + 20 factor columns */
+  grid-template-columns: repeat(21, minmax(0, 1fr));
   gap: clamp(1px, 0.3vw, 3px);
   width: 100%;
 }
@@ -747,7 +747,81 @@ tr.is-me td { background: #fff7ed; }
     padding: 0.75rem;
   }
 
-  .summary-stat-grid,
+  /* Header */
+  .header--centered h1 {
+    font-size: 1.3rem;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .header-speech-row {
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .header-robot-wrap {
+    width: 2.2rem;
+    height: 2.2rem;
+    background-size: 2.2rem auto;
+    flex-shrink: 0;
+  }
+
+  .header-speech-bubble {
+    font-size: 0.82rem;
+    padding: 0.4rem 0.65rem;
+    max-width: 100%;
+  }
+
+  /* Nav — keep logout in the flow, don't orphan it */
+  .tabs {
+    row-gap: 0.4rem;
+  }
+
+  .logout-tab-btn {
+    margin-left: 0;
+  }
+
+  /* Heatmap — scroll horizontally, enforce readable min cell size */
+  .heatmap-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .heatmap-grid {
+    grid-template-columns: repeat(21, minmax(1.6rem, 1fr));
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .heatmap-header,
+  .heatmap-corner {
+    width: 1.6rem;
+    height: 1.6rem;
+    aspect-ratio: unset;
+  }
+
+  .heatmap-cell {
+    width: 1.6rem;
+    height: 1.6rem;
+    aspect-ratio: unset;
+    font-size: 0.45rem;
+  }
+
+  /* Session history table — horizontal scroll */
+  .session-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 480px;
+  }
+
+  /* Summary stat grid — 2 columns on mobile instead of 1 */
+  .summary-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .question-review-list {
     grid-template-columns: 1fr;
   }
@@ -755,5 +829,15 @@ tr.is-me td { background: #fff7ed; }
   .number-pad-key {
     min-height: 3.25rem;
     font-size: 1.25rem;
+  }
+
+  /* Compare grid stacks on mobile */
+  .compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-divider {
+    text-align: center;
+    padding: 0;
   }
 }
