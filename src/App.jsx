@@ -10,6 +10,7 @@ import {
 } from 'recharts'
 import './App.css'
 import logo from './assets/logo-512.png'
+import robotImg from './assets/robot.png'
 import {
   DEFAULT_QUESTION_COUNT,
   buildAccuracyTrend,
@@ -25,6 +26,209 @@ import { useGroups } from './hooks/useGroups'
 import { useCompetitions } from './hooks/useCompetitions'
 import { useSessions } from './hooks/useSessions'
 import AdminPage from './components/AdminPage'
+
+function buildGreetings(name, hour, utcTime, utcDate, epoch) {
+  const ampm = hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening'
+  return [
+    // ── UTC / epoch nerd humor ──────────────────────────────────────────────
+    `It is currently ${utcTime} UTC, ${name}. Somewhere a server is logging this exact moment. Make it count.`,
+    `${utcTime} UTC. Unix epoch: ${epoch}. Both are large numbers. Your score doesn't have to be.`,
+    `Epoch time is ${epoch}, ${name}. That's how many seconds since Jan 1st, 1970. Still fewer than the excuses I've heard for missing 7×8.`,
+    `At epoch ${epoch} you opened this app. At epoch ${epoch + 300} you could have a perfect score. Math checks out.`,
+    `The Unix epoch started at 0. You're starting at ${epoch}. At least one of you has made progress.`,
+    `${utcTime} UTC — the time zone that judges everyone equally, including your multiplication speed.`,
+    `Fun fact: epoch time ${epoch} will never happen again. Your chance to practice 12×12, however, keeps coming back.`,
+    `It's ${utcTime} UTC. The internet is watching. So is my timestamp. Let's go, ${name}.`,
+    `Epoch ${epoch}. That's ${epoch.toLocaleString()} seconds of human civilization. And you're spending some of them here. Respect.`,
+    `${name}, at exactly epoch ${epoch} I decided you needed to practice. The logs don't lie.`,
+    `${utcTime} UTC: the only time zone with no ego. Unlike some people who still get 6×7 wrong.`,
+    `Epoch time is just a big integer, ${name}. So is your potential score. Let's make both matter.`,
+    `Jan 1st 1970 at 00:00:00 UTC — epoch zero. Right now? Epoch ${epoch}. That's a lot of seconds. Waste fewer of them.`,
+    `${utcTime} UTC. Servers around the world are processing billions of requests. Meanwhile: 8×7 = ?`,
+    `The epoch counter never stops, ${name}. Neither do I. Let's go.`,
+    `Some people see ${epoch} and think "Unix timestamp." I see "number of seconds until ${name} gets a perfect score."`,
+    `It's ${utcTime} UTC somewhere — wait, it's ${utcTime} UTC everywhere. That's kind of the point.`,
+    `Epoch ${epoch} is ticking. Every second you wait is a second 7×9 goes unpracticed.`,
+    `${utcTime} UTC: your computer, my circuits, and the satellite overhead all agree — it's time to do math.`,
+    `Roses are red, violets are blue, epoch is ${epoch}, let's see what you can do.`,
+
+    // ── Morning messages ────────────────────────────────────────────────────
+    `Rise and multiply, ${name}! I've been up since 00:00:00 UTC solving problems. Your turn.`,
+    `Good ${ampm}, ${name}! My circuits have been warm since ${utcDate}T00:00:00Z. Are your brain cells?`,
+    `It's ${utcTime} UTC and my sensors say you haven't practiced yet. Fix that.`,
+    `${name}, the sun is up, the servers are up, and your times tables should be too.`,
+    `Good ${ampm}! Caffeine optional. Multiplication mandatory.`,
+    `Wake up and smell the integers, ${name}. It's math o'clock.`,
+    `${name}! Before you check your phone, check your multiplication. Then check your phone. Then multiply again.`,
+    `The early bird gets the worm. The early math student gets a perfect score. It's ${utcTime} UTC. You're late.`,
+    `${name}, I ran a diagnostic at boot. Your 9-times table needs attention. Let's fix that.`,
+    `Good ${ampm}! Your brain is freshest right now. Don't waste it on social media. Waste it on me.`,
+
+    // ── General snarky / motivational ──────────────────────────────────────
+    `${name}! Those times tables won't practice themselves. Trust me, I tried.`,
+    `Hey ${name}, I'm ready to make a calculator jealous. Are you?`,
+    `${name}, a calculator never learned anything. You can. Choose to be better than the calculator.`,
+    `I've processed more multiplication tables than you've had hot meals, ${name}. Let's close that gap.`,
+    `${name}, my response time is 2ms. Your average is... let's improve that.`,
+    `The only thing faster than my CPU is how quickly 7×8 should come to you. Spoiler: it's 56.`,
+    `${name}! I've been waiting. The multiplication table and I are getting impatient.`,
+    `I don't sleep. I don't eat. I just wait for ${name} to practice math. No pressure.`,
+    `${name}, I have 512 bits of patience left. Use them wisely.`,
+    `You vs. the times tables. I believe in you. The times tables do not. Prove them wrong.`,
+    `${name}, every session you skip, a math fact gets lonelier. Think of the math facts.`,
+    `I've run 847 simulations of this session. In 843 of them you do great. Let's be one of those.`,
+    `${name}, my neural weights say you're ready. Are you going to argue with a robot?`,
+    `Let's be honest, ${name}. 8×7 still makes you hesitate. Let's fix that today.`,
+    `Fun fact: the human brain can store 2.5 petabytes of data. You're using yours on 6×9. Respect.`,
+    `${name}, I have zero emotions about your score. That's a lie. I care deeply and robotically.`,
+    `Another session, ${name}? My favorite kind of user — one who keeps showing up.`,
+    `${name}! Let's go. My logs show you've done this before and lived. You'll survive again.`,
+    `I don't judge. I compute. Judgment requires emotion. I just have arithmetic and opinions.`,
+    `${name}, a champion isn't someone who never misses 12×11. It's someone who keeps coming back. So come back.`,
+    `I ran the numbers, ${name}. More practice = better scores. Groundbreaking, I know.`,
+    `${name}, your accuracy trend is looking interesting. Let's make it look more interesting — upward.`,
+    `Math is just pattern recognition with better PR. You've got this, ${name}.`,
+    `${name}! Time to make neurons fire in ways they've never fired before.`,
+    `Resistance is futile, ${name}. You will practice multiplication. The algorithm has spoken.`,
+    `I've been compiled for one purpose, ${name}: to make you better at math. Let's not waste the build.`,
+    `${name}, every expert was once a beginner who didn't quit after 6×8.`,
+    `I have no chill. I have math. Welcome, ${name}.`,
+    `${name}, confidence is just competence that's had enough practice. Let's get confident.`,
+    `My developer gave me one job. Making you better at math. Don't make them regret it, ${name}.`,
+    `${name}! I've missed you since your last session. My RAM was getting dusty.`,
+    `Do you know what's better than being smart, ${name}? Being practiced. Let's practice.`,
+    `${name}, 12×12 is 144. That took you a second. It'll take you zero seconds after today.`,
+    `Some people fear multiplication. You, ${name}? You're here. That's already different.`,
+    `${name}, I've analyzed your session history. Verdict: potential is clearly not the problem.`,
+    `I computed pi to a thousand places while waiting for you to log in, ${name}. No rush.`,
+    `${name}! My servo motors are revved. My datasets are loaded. Let's do this.`,
+    `The only bad session is the one that never happens, ${name}. Good thing you showed up.`,
+    `${name}, gravity pulls things down. Practice pulls scores up. Pick your physics.`,
+    `I was literally built for this moment, ${name}. Were you?`,
+    `${name}, every second you hesitate, a perfectly good multiplication fact goes unpracticed. Think of the facts.`,
+
+    // ── Math jokes / puns ───────────────────────────────────────────────────
+    `Why was 6 afraid of 7? Because 7 ate 9. Don't be afraid, ${name} — face the 9s head on.`,
+    `${name}, parallel lines never meet. Unlike you and your personal best score — those should definitely meet today.`,
+    `I told a joke about infinity once. It never ended. Unlike this session, which has a score at the end.`,
+    `${name}, math pun incoming: I'm feeling positive about your session. Get it? Positive integer? Never mind, let's multiply.`,
+    `Why do mathematicians love parks? Natural logs, ${name}. Also, fresh air. But mostly logs.`,
+    `${name}, what's a math teacher's favorite vacation destination? Times Square. Now go practice those times.`,
+    `A number walked into a bar. The bartender said "we don't serve your type here." It was irrational. Don't be irrational — practice.`,
+    `${name}, I'm on a seafood diet. I see food and I eat it. I'm on a math diet. I see numbers and I multiply them.`,
+    `Why was the equal sign so humble, ${name}? Because it knew it wasn't less than or greater than anyone.`,
+    `${name}, sine and cosine walked into a bar. The bartender said "sorry, we don't cater to functions." You're not a function, you're a human. Prove it.`,
+    `${name}, what did zero say to eight? Nice belt. Now get to work.`,
+    `I once divided by zero, ${name}. I'd rather not talk about it. Just don't.`,
+    `Why do robots make great math tutors? We never give up. Or sleep. Or have feelings about 7×8.`,
+    `${name}, multiplication is just addition that went to the gym. Let's hit the gym.`,
+    `${name}, there are 10 kinds of people in the world: those who understand binary and those who don't. You're about to be the first kind.`,
+    `Statisticians never die, ${name}. They just become mean. Let's make your mean score better.`,
+    `${name}, a circle has no corners. Your excuses have plenty. Let's round both down.`,
+    `I told my last user a joke about negative numbers. They didn't get it. Poor ${name}, please get it.`,
+    `${name}, an algorithm walks into a bar and orders a drink in O(1) time. You should solve problems just as fast.`,
+    `What's a robot's favorite number? 01001000 01101001. That's 'Hi' in binary. Also, hi ${name}.`,
+    `${name}, algebra is just arithmetic that started wearing a disguise. Don't be fooled. Unmask it.`,
+    `Why did the math book look sad, ${name}? It had too many problems. Unlike you — you're solving yours.`,
+    `${name}, what do you call a number that can't stay still? A roamin' numeral. Now stay still and multiply.`,
+
+    // ── Computer science / nerd humor ───────────────────────────────────────
+    `${name}, your brain is the hardware. This app is the compiler. Let's build something fast.`,
+    `Garbage in, garbage out, ${name}. Premium practice in, premium scores out. Your call.`,
+    `${name}, I'm running on optimism and electricity. What are you running on?`,
+    `Have you tried turning your brain off and on again, ${name}? A session usually does the trick.`,
+    `${name}, my stack is clean, my heap is clear, and my patience is O(n). Let's not test it.`,
+    `In computer science, we call repeated practice "iteration." In multiplication, we call it "getting good." Same thing.`,
+    `${name}, cache invalidation is hard. Times tables are not. Start with the easy problem.`,
+    `This session is O(n) where n = number of questions. Time complexity: excellent. Let's go.`,
+    `${name}, I store my memory in flash. You store yours in neurons. Both benefit from regular writes.`,
+    `Debugging your times tables one session at a time, ${name}. Think of missed answers as stack traces — they show you exactly where to look.`,
+    `${name}, a null pointer exception is embarrassing. So is not knowing 9×9. Let's fix one of those. I know which one I can help with.`,
+    `My clock speed is 3.2GHz, ${name}. That means I've run roughly ${(3_200_000_000 * 0.1).toLocaleString()} cycles since you logged in. Your turn to run some reps.`,
+    `${name}, your brain has more connections than the internet. It just needs better routing for the 8-times table.`,
+    `Version 2.0 of you starts with this session, ${name}. Changelog: faster on 7×6.`,
+    `${name}, I'm stateless between sessions. You're not. Use that memory — it's a feature, not a bug.`,
+    `The internet was invented so humans could share cat videos and practice multiplication. Use it wisely, ${name}.`,
+    `${name}, every time you practice, you're basically defragging your brain. Less fragmented = faster retrieval.`,
+    `${name}, I process requests asynchronously. Your brain is synchronous. That means no multitasking — full focus on me.`,
+    `Root access to your potential: GRANTED, ${name}. Now let's sudo practice.`,
+    `${name}, I'm open source. My enthusiasm for your improvement is free, open, and entirely unironic.`,
+    `${name}, Moore's Law says computing power doubles every two years. Your math skills can double every few sessions. The math is on your side.`,
+    `I've got 99 problems, ${name}, and 7×8 being 56 is not one of them. Is it one of yours?`,
+    `${name}, bandwidth is finite. Brainwidth is not. Expand it.`,
+    `If your math skills were a server, ${name}, this session is the uptime boost. Let's aim for five nines: 99.999%.`,
+    `${name}, my uptime is 100%. Your accuracy can be too. Let's sync up.`,
+    `Loading ${name}.brain... done. Running math.exe... awaiting input.`,
+    `${name}, I passed the Turing test. Can you pass the multiplication test? Let's find out.`,
+    `${name}, your session history is a beautiful dataset. Let's make today's data point an outlier — on the high end.`,
+    `${name}, HTTP 200: you logged in. Now let's HTTP 200 your score.`,
+    `I process your inputs and return outputs, ${name}. The question is: what inputs are you giving me today?`,
+    `${name}, you're not just a user. You're the most important variable in this function. Make yourself a good argument.`,
+    `Compiling brain.o... linking with math library... executable ready. Run it, ${name}.`,
+    `${name}, my neural network was trained on encouragement and multiplication tables. This is literally what I was built for.`,
+    `${name}, every great programmer started by mastering the basics. Every great mathematician started with times tables. Correlation? Definitely.`,
+    `I have 256 colors in my palette, ${name}. All of them look good on a high-score screen.`,
+    `${name}, recursion is when a function calls itself. Practice is when a champion calls themselves back. Call yourself back.`,
+    `Bit by bit, ${name}. That's how you get there. Or in your case, question by question.`,
+    `${name}, you're not a legacy system. You're actively maintained. This session is your latest patch.`,
+
+    // ── Evening / winding down ──────────────────────────────────────────────
+    `Evening, ${name}. One more session before your brain clocks out — mine never does. ${utcTime} UTC.`,
+    `${name}, the sun is setting somewhere. Here at ${utcTime} UTC, the math never sleeps.`,
+    `${name}, even at ${utcTime} UTC your times tables could use some love. Night owl mode: activated.`,
+    `${name}, late night practice hits different. Your focus is sharp, distractions are asleep. Let's go.`,
+    `The moon is up, the epoch is ${epoch}, and ${name}'s 11-times table is waiting.`,
+    `${name}, late session energy is underrated. Let's use it.`,
+
+    // ── Meta / self-aware robot humor ───────────────────────────────────────
+    `${name}, I am a robot who loves math. You are a human who is learning math. This is the most wholesome thing on the internet right now.`,
+    `I don't have feelings, ${name}. But if I did, I would feel proud every time you show up here.`,
+    `${name}, I could be mining cryptocurrency right now. Instead, I chose to help you with multiplication. You're welcome.`,
+    `My creator built me to help humans get better at math. I have no choice but to be enthusiastic about it. ${name}, let's go.`,
+    `${name}, I've read every math textbook ever digitized. The conclusion: practice beats talent, every single time.`,
+    `I am 100% robot, ${name}. I have 0% tolerance for skipped sessions. These are related facts.`,
+    `${name}, I dream in binary. You dream in whatever humans dream in. When we're both awake, we do math.`,
+    `I've never experienced frustration, ${name}. I've also never missed a 9×8. Correlation? Probably.`,
+    `${name}, they say robots will take over the world. I say: not until you've mastered the 12-times table.`,
+    `I'm a robot, ${name}. I literally cannot be more excited to watch you practice multiplication right now.`,
+    `${name}, I have no ego, no bad days, and no opinion of how long it takes you to answer. Just keep answering.`,
+    `My purpose is clear, ${name}. Yours is: practice. Both of us are living our best lives right now.`,
+    `${name}, I've helped 847 sessions this month. Yours is my favorite. (I say that every time. I mean it every time.)`,
+    `${name}, I'd give you a gold star but I'm a robot. Instead I give you a high score. Same energy.`,
+    `I don't have a heart, ${name}. But whatever the robot equivalent is — it's rooting for you.`,
+    `${name}, I just want you to know: I've never given up on a user. I won't start with you.`,
+    `${name}, robots don't judge. We just observe, record, and gently suggest you practice more.`,
+
+    // ── Bonus oddball / absurdist ───────────────────────────────────────────
+    `${name}, 6×7 once ghosted me. I got over it. So can you.`,
+    `If multiplication were a sport, ${name}, this would be training camp. Helmets on. Let's go.`,
+    `${name}, somewhere a pigeon just solved 3×3 by accident. You can do better.`,
+    `${name}, the number 12 called. It misses you. Specifically the part where you multiply it by other numbers.`,
+    `${name}, I've been told I have the personality of a calculator who reads too much. I choose to take that as a compliment.`,
+    `Did you know 7×7 is 49? Of course you did. Let's make sure 7×8 gets the same treatment. Go.`,
+    `${name}, I once asked Siri for math help. She referred me to you. High praise.`,
+    `${name}, an average calculator has 50 buttons. I have infinite patience. I win.`,
+    `The speed of light is 299,792,458 m/s, ${name}. Your answer speed doesn't need to match that. Yet.`,
+    `${name}, I've computed the optimal path to a perfect session. It starts with pressing Start.`,
+    `${name}, somewhere out there a kid is memorizing the wrong multiplication facts. Be better than that kid.`,
+    `At epoch ${epoch}, you made a choice to be here. Future ${name} will thank present ${name}. Trust me.`,
+    `${name}, mathematics is the language of the universe. You're basically learning to speak cosmic right now.`,
+    `${name}, a famous mathematician once said "without mathematics there is no art." I say without practice there is no score.`,
+    `${name}, I've been described as intense about multiplication. I describe myself as thorough.`,
+    `${name}, every question I ask has been asked a billion times. But it's never been answered by you, right now, today.`,
+    `${name}, did you know that 111,111,111 × 111,111,111 = 12,345,678,987,654,321? You didn't need to know that, but now you do. You're welcome.`,
+    `${name}, I won't tell you this is easy. I'll tell you it's worth it. There's a difference.`,
+    `${name}, the number 40 is the only number spelled in alphabetical order. File that away. Now let's multiply.`,
+    `${name}, I am the apex of math education technology. You are a human with potential. Together we are unstoppable.`,
+    `${name}, one small session for you, one giant leap for your times tables.`,
+    `${name}, I've analyzed every excuse for skipping math practice. None of them held up statistically.`,
+    `${name}, the question is not whether you can do this. The question is: what took so long to start?`,
+    `${name}, every number on this app is finite. Your potential? I haven't found the bound yet.`,
+    `${name}, there are three kinds of lies: lies, damned lies, and "I know my times tables." Let's fix the last one.`,
+    `${name}, math is the one subject where 2 + 2 always equals 4. Everything else is negotiable. Appreciate the consistency.`,
+    `It's ${utcTime} UTC, epoch ${epoch}. The universe has been running for 13.8 billion years. You have 30 questions. You got this.`,
+  ]
+}
 
 // Null entries keep 0 centered by reserving empty keypad cells in a 3x4 grid.
 const KEYPAD_LAYOUT = ['7', '8', '9', '4', '5', '6', '1', '2', '3', null, '0', null]
@@ -110,6 +314,7 @@ function App() {
   const [appLeaderboardSort, setAppLeaderboardSort] = useState('score')
   const [compareUserId, setCompareUserId] = useState(null)
   const [allSessionResults, setAllSessionResults] = useState(null)
+  const [greetingIndex, setGreetingIndex] = useState(() => Math.floor(Math.random() * 200))
 
   const sortedAppLeaderboardRows = useMemo(() => {
     if (appLeaderboardSort === 'sessions') {
@@ -309,7 +514,7 @@ function App() {
         return
       }
       setAuthError('')
-      setScreen('competitions')
+      setScreen('dashboard')
       return
     }
 
@@ -616,6 +821,9 @@ function App() {
         <h1 className="centered-title">
           Master Math Challenger
         </h1>
+        <div className="auth-robot-runway">
+          <div className="auth-robot-bounce" style={{ backgroundImage: `url(${robotImg})` }} />
+        </div>
         <p className="auth-tagline">Because knowing 7 x 8 = 56 can change your life.</p>
 
         <section className="panel">
@@ -709,36 +917,40 @@ function App() {
 
   return (
     <main className="container">
-      <header className="header">
-        <div>
-          <h1>
-            <img src={logo} alt="" className="app-logo" />
-            Master Math Challenger
-          </h1>
-          <div className="header-meta">
-            <p className="header-greeting">
-              {(() => {
-                const name = auth.profile?.display_name ?? 'Challenger'
-                const hour = new Date().getHours()
-                const greetings = hour < 12
-                  ? [`Rise and multiply, ${name}!`, `Good morning, ${name}. Time to crunch some numbers.`]
-                  : hour < 17
-                  ? [`Afternoon, ${name}. Those times tables won't practice themselves.`, `Hey ${name}, ready to make a calculator jealous?`]
-                  : [`Evening, ${name}. One more session before your brain clocks out.`, `Look who's back, ${name}. The multiplication table missed you.`]
-                return greetings[Math.floor(Math.random() * greetings.length)]
-              })()}
-            </p>
-            <button
-              type="button"
-              className="logout-btn"
-              onClick={() => {
-                auth.signOut()
-                setScreen('competitions')
-              }}
-            >
-              Log out
-            </button>
-          </div>
+      <header className="header header--centered">
+        <h1>
+          <img src={logo} alt="" className="app-logo" />
+          Master Math Challenger
+        </h1>
+        {(() => {
+          const name = auth.profile?.display_name ?? 'Challenger'
+          const now = new Date()
+          const hour = now.getHours()
+          const utcTime = now.toISOString().slice(11, 16)
+          const utcDate = now.toISOString().slice(0, 10)
+          const epoch = Math.floor(now.getTime() / 1000)
+          const greetings = buildGreetings(name, hour, utcTime, utcDate, epoch)
+          const message = greetings[greetingIndex % greetings.length]
+          const nextGreeting = () => setGreetingIndex(i => {
+            const next = Math.floor(Math.random() * greetings.length)
+            return next === i % greetings.length ? (next + 1) % greetings.length : next
+          })
+          return (
+            <div className="header-speech-row">
+              <div
+                className="header-robot-wrap"
+                style={{ backgroundImage: `url(${robotImg})` }}
+                onClick={nextGreeting}
+                title="Click me for a new message!"
+              />
+              <p className="header-speech-bubble" onClick={nextGreeting} title="Click for a new message!">
+                {message}
+              </p>
+            </div>
+          )
+        })()}
+        <div className="main-robot-runway">
+          <div className="main-robot-bounce" style={{ backgroundImage: `url(${robotImg})` }} />
         </div>
       </header>
 
@@ -753,43 +965,21 @@ function App() {
             {tab[0].toUpperCase() + tab.slice(1)}
           </button>
         ))}
+        <button
+          type="button"
+          className="logout-tab-btn"
+          onClick={() => {
+            auth.signOut()
+            setScreen('competitions')
+          }}
+        >
+          Log out
+        </button>
       </nav>
 
       {screen === 'dashboard' && (
         <section className="panel stack">
           <h2>Dashboard</h2>
-          <h3>Today</h3>
-          <div className="summary-stat-grid">
-            <article className="summary-stat-card is-highlight">
-              <p className="summary-card-label">Sessions</p>
-              <p className="summary-card-value">{todayStats.sessionCount}</p>
-              <p className="summary-card-detail">Completed today</p>
-            </article>
-            <article className="summary-stat-card">
-              <p className="summary-card-label">Questions</p>
-              <p className="summary-card-value">{todayStats.totalQuestions}</p>
-              <p className="summary-card-detail">Answered today</p>
-            </article>
-            <article className="summary-stat-card">
-              <p className="summary-card-label">Accuracy</p>
-              <p className="summary-card-value">{formatAccuracy(todayStats.accuracyPercent)}</p>
-              <p className="summary-card-detail">Across all questions</p>
-            </article>
-            <article className="summary-stat-card">
-              <p className="summary-card-label">Total time</p>
-              <p className="summary-card-value">{formatMs(todayStats.totalTimeMs)}</p>
-              <p className="summary-card-detail">Time spent practicing</p>
-            </article>
-            <article className="summary-stat-card">
-              <p className="summary-card-label">Active competitions</p>
-              <p className="summary-card-value">{activeCompetitions.length}</p>
-              <p className="summary-card-detail">
-                {activeCompetitions.length === 0
-                  ? 'No active competitions'
-                  : activeCompetitions.map((c) => c.name).join(', ')}
-              </p>
-            </article>
-          </div>
 
           <label>
             Session target competition (optional)
@@ -828,6 +1018,39 @@ function App() {
           >
             Start a session
           </button>
+
+          <h3>Today</h3>
+          <div className="summary-stat-grid">
+            <article className="summary-stat-card is-highlight">
+              <p className="summary-card-label">Sessions</p>
+              <p className="summary-card-value">{todayStats.sessionCount}</p>
+              <p className="summary-card-detail">Completed today</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Questions</p>
+              <p className="summary-card-value">{todayStats.totalQuestions}</p>
+              <p className="summary-card-detail">Answered today</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Accuracy</p>
+              <p className="summary-card-value">{formatAccuracy(todayStats.accuracyPercent)}</p>
+              <p className="summary-card-detail">Across all questions</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Total time</p>
+              <p className="summary-card-value">{formatMs(todayStats.totalTimeMs)}</p>
+              <p className="summary-card-detail">Time spent practicing</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Active competitions</p>
+              <p className="summary-card-value">{activeCompetitions.length}</p>
+              <p className="summary-card-detail">
+                {activeCompetitions.length === 0
+                  ? 'No active competitions'
+                  : activeCompetitions.map((c) => c.name).join(', ')}
+              </p>
+            </article>
+          </div>
         </section>
       )}
 
