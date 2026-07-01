@@ -705,25 +705,36 @@ function App() {
       {screen === 'dashboard' && (
         <section className="panel stack">
           <h2>Dashboard</h2>
-          <div className="stats-grid">
-            <article>
-              <h3>Today</h3>
-              <p>Sessions: {todayStats.sessionCount}</p>
-              <p>Questions: {todayStats.totalQuestions}</p>
-              <p>Accuracy: {formatAccuracy(todayStats.accuracyPercent)}</p>
-              <p>Total time: {formatMs(todayStats.totalTimeMs)}</p>
+          <h3>Today</h3>
+          <div className="summary-stat-grid">
+            <article className="summary-stat-card is-highlight">
+              <p className="summary-card-label">Sessions</p>
+              <p className="summary-card-value">{todayStats.sessionCount}</p>
+              <p className="summary-card-detail">Completed today</p>
             </article>
-            <article>
-              <h3>Active competitions</h3>
-              {activeCompetitions.length === 0 ? (
-                <p>No active competitions yet.</p>
-              ) : (
-                <ul>
-                  {activeCompetitions.map((competition) => (
-                    <li key={competition.id}>{competition.name}</li>
-                  ))}
-                </ul>
-              )}
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Questions</p>
+              <p className="summary-card-value">{todayStats.totalQuestions}</p>
+              <p className="summary-card-detail">Answered today</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Accuracy</p>
+              <p className="summary-card-value">{formatAccuracy(todayStats.accuracyPercent)}</p>
+              <p className="summary-card-detail">Across all questions</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Total time</p>
+              <p className="summary-card-value">{formatMs(todayStats.totalTimeMs)}</p>
+              <p className="summary-card-detail">Time spent practicing</p>
+            </article>
+            <article className="summary-stat-card">
+              <p className="summary-card-label">Active competitions</p>
+              <p className="summary-card-value">{activeCompetitions.length}</p>
+              <p className="summary-card-detail">
+                {activeCompetitions.length === 0
+                  ? 'No active competitions'
+                  : activeCompetitions.map((c) => c.name).join(', ')}
+              </p>
             </article>
           </div>
 
@@ -1323,6 +1334,48 @@ function App() {
               Most sessions
             </button>
           </div>
+
+          {sortedAppLeaderboardRows.length > 0 && (() => {
+            const top10 = sortedAppLeaderboardRows.slice(0, 10)
+            return (
+              <div className="stack">
+                <h3>Top {top10.length} players</h3>
+                <div className="chart" aria-label="Top players chart">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={top10.map((row, i) => ({ rank: i + 1, name: row.displayName, score: row.totalCorrect }))} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+                      <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#475569' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#cbd5e1' }}
+                        interval={0}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 12, fill: '#475569' }}
+                        tickLine={false}
+                        axisLine={{ stroke: '#cbd5e1' }}
+                        width={44}
+                      />
+                      <Tooltip
+                        formatter={(value) => [value, 'Total correct']}
+                        labelFormatter={(name) => `Player: ${name}`}
+                        contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0' }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="#d85a30"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: '#d85a30', strokeWidth: 0 }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )
+          })()}
 
           <table>
             <thead>
