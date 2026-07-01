@@ -1640,14 +1640,17 @@ function App() {
                 <h3>Top {top10.length} players — {chartConfig.label}</h3>
                 <div className="chart" aria-label="Top players chart">
                   <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+                    <LineChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 40 }}>
                       <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                       <XAxis
                         dataKey="name"
                         tick={{ fontSize: 11, fill: '#475569' }}
                         tickLine={false}
                         axisLine={{ stroke: '#cbd5e1' }}
-                        interval={0}
+                        angle={-35}
+                        textAnchor="end"
+                        height={60}
+                        interval="preserveStartEnd"
                       />
                       <YAxis
                         domain={appLeaderboardSort === 'accuracy' ? [0, 100] : ['auto', 'auto']}
@@ -1785,6 +1788,7 @@ function App() {
             </select>
           </label>
 
+          <div className="table-scroll-wrap">
           <table>
             <thead>
               <tr>
@@ -1812,6 +1816,7 @@ function App() {
               )}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 

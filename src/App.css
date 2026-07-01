@@ -649,6 +649,8 @@ td {
 /* Heatmap — fluid: fills container, caps at 2.5rem per cell, min 1.25rem */
 .heatmap-wrap {
   width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .heatmap-grid {
@@ -657,6 +659,9 @@ td {
   grid-template-columns: repeat(21, minmax(0, 1fr));
   gap: clamp(1px, 0.3vw, 3px);
   width: 100%;
+  /* Cap each cell at 2.5rem on wide desktops and centre the grid */
+  max-width: calc(21 * 2.5rem + 20 * 3px);
+  margin: 0 auto;
 }
 
 .heatmap-corner {
@@ -781,16 +786,14 @@ tr.is-me td { background: #fff7ed; }
     margin-left: 0;
   }
 
-  /* Heatmap — scroll horizontally, enforce readable min cell size */
-  .heatmap-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  /* Heatmap — enforce readable min cell size on mobile (base already handles overflow-x) */
 
   .heatmap-grid {
     grid-template-columns: repeat(21, minmax(1.6rem, 1fr));
     width: max-content;
     min-width: 100%;
+    max-width: none;
+    margin: 0;
   }
 
   .heatmap-header,

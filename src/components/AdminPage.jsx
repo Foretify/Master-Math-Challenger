@@ -80,6 +80,7 @@ export default function AdminPage() {
 
       <div className="stack">
         <h3>Users</h3>
+        <div className="table-scroll-wrap">
         <table>
           <thead>
             <tr>
@@ -106,6 +107,7 @@ export default function AdminPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="stack">
@@ -121,6 +123,7 @@ export default function AdminPage() {
             ))}
           </select>
         </label>
+        <div className="table-scroll-wrap">
         <table>
           <thead>
             <tr>
@@ -146,10 +149,12 @@ export default function AdminPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="stack">
         <h3>Groups</h3>
+        <div className="table-scroll-wrap">
         <table>
           <thead>
             <tr>
@@ -187,6 +192,7 @@ export default function AdminPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </section>
   )
