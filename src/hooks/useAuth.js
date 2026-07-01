@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { logActivity } from '../lib/activityLog'
 
@@ -17,15 +17,24 @@ export function useAuth() {
     setProfile(data ?? null)
   }, [])
 
+  const lastFetchedUserIdRef = useRef(undefined)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
+      const userId = data.session?.user?.id ?? null
       setSession(data.session)
-      fetchProfile(data.session?.user?.id).finally(() => setLoading(false))
+      lastFetchedUserIdRef.current = userId
+      fetchProfile(userId).finally(() => setLoading(false))
     })
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      const userId = nextSession?.user?.id ?? null
       setSession(nextSession)
-      fetchProfile(nextSession?.user?.id)
+
+      if (userId !== lastFetchedUserIdRef.current) {
+        lastFetchedUserIdRef.current = userId
+        fetchProfile(userId)
+      }
     })
 
     return () => subscription.subscription.unsubscribe()
