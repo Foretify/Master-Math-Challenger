@@ -108,6 +108,8 @@ function App() {
   const [leaderboardRows, setLeaderboardRows] = useState([])
   const [appLeaderboardRows, setAppLeaderboardRows] = useState([])
   const [appLeaderboardSort, setAppLeaderboardSort] = useState('score')
+  const [compareUserId, setCompareUserId] = useState(null)
+  const [allSessionResults, setAllSessionResults] = useState(null)
 
   const sortedAppLeaderboardRows = useMemo(() => {
     if (appLeaderboardSort === 'sessions') {
@@ -210,6 +212,18 @@ function App() {
     }
   }, [userSessions])
 
+  const heatmapGrid = useMemo(() => {
+    if (!allSessionResults || allSessionResults.length === 0) return null
+    const grid = {}
+    for (const row of allSessionResults) {
+      const key = `${row.factor_a}-${row.factor_b}`
+      if (!grid[key]) grid[key] = { correct: 0, total: 0 }
+      grid[key].total += 1
+      if (row.is_correct) grid[key].correct += 1
+    }
+    return grid
+  }, [allSessionResults])
+
   useEffect(() => {
     if (!sessionState) {
       return
@@ -248,6 +262,20 @@ function App() {
 
     competitionsApi.fetchLeaderboard(viewingCompetitionId).then(setCompetitionDetailRows)
   }, [viewingCompetitionId, competitionsApi])
+
+  useEffect(() => {
+    const sessionIds = userSessions.map((s) => s.id)
+    if (sessionIds.length === 0) {
+      setAllSessionResults([])
+      return
+    }
+
+    supabase
+      .from('questions_log')
+      .select('factor_a, factor_b, is_correct')
+      .in('session_id', sessionIds)
+      .then(({ data }) => setAllSessionResults(data ?? []))
+  }, [userSessions])
 
   function viewCompetition(competitionId) {
     setViewingCompetitionId(competitionId)
@@ -666,6 +694,12 @@ function App() {
     sessionNumber: index + 1,
     accuracy: Number(value.toFixed(1)),
   }))
+
+  const levelChartData = userSessions.slice(-12).map((s, index) => ({
+    sessionNumber: index + 1,
+    level: s.difficultyLevelReached,
+  }))
+
   const tabs = ['competitions', 'dashboard', 'session', 'summary', 'groups', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
@@ -1412,25 +1446,85 @@ function App() {
                 <th>Total correct</th>
                 <th>Sessions</th>
                 <th>Avg time</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {sortedAppLeaderboardRows.map((row, index) => (
-                <tr key={row.userId}>
+                <tr key={row.userId} className={row.userId === currentUserId ? 'is-me' : ''}>
                   <td>{index + 1}</td>
-                  <td>{row.displayName}</td>
+                  <td>{row.displayName}{row.userId === currentUserId ? ' (you)' : ''}</td>
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
                   <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
+                  <td>
+                    {row.userId !== currentUserId && (
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => setCompareUserId(compareUserId === row.userId ? null : row.userId)}
+                      >
+                        {compareUserId === row.userId ? 'Close' : 'Compare'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {sortedAppLeaderboardRows.length === 0 && (
                 <tr>
-                  <td colSpan="5">No scores yet.</td>
+                  <td colSpan="6">No scores yet.</td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {compareUserId && (() => {
+            const me = appLeaderboardRows.find((r) => r.userId === currentUserId)
+            const them = appLeaderboardRows.find((r) => r.userId === compareUserId)
+            if (!me || !them) return null
+            const metrics = [
+              { label: 'Total correct', mine: me.totalCorrect, theirs: them.totalCorrect, better: 'higher' },
+              { label: 'Sessions', mine: me.sessionCount, theirs: them.sessionCount, better: 'higher' },
+              { label: 'Accuracy', mine: me.accuracyPercent != null ? `${me.accuracyPercent}%` : '-', theirs: them.accuracyPercent != null ? `${them.accuracyPercent}%` : '-', better: 'higher', cmp: [me.accuracyPercent, them.accuracyPercent] },
+              { label: 'Avg time', mine: me.avgTime != null ? formatMs(me.avgTime) : '-', theirs: them.avgTime != null ? formatMs(them.avgTime) : '-', better: 'lower', cmp: [me.avgTime, them.avgTime] },
+            ]
+            return (
+              <div className="stack">
+                <h3>Head-to-head: you vs {them.displayName}</h3>
+                <div className="compare-grid">
+                  <div className="compare-col compare-col--you">
+                    <p className="compare-name">You ({me.displayName})</p>
+                    {metrics.map((m) => {
+                      const mineVal = m.cmp ? m.cmp[0] : (typeof m.mine === 'number' ? m.mine : null)
+                      const theirVal = m.cmp ? m.cmp[1] : (typeof m.theirs === 'number' ? m.theirs : null)
+                      const winning = mineVal != null && theirVal != null && (m.better === 'higher' ? mineVal > theirVal : mineVal < theirVal)
+                      return (
+                        <div key={m.label} className={`compare-stat ${winning ? 'compare-win' : ''}`}>
+                          <span className="compare-label">{m.label}</span>
+                          <span className="compare-value">{m.mine}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="compare-divider">VS</div>
+                  <div className="compare-col compare-col--them">
+                    <p className="compare-name">{them.displayName}</p>
+                    {metrics.map((m) => {
+                      const mineVal = m.cmp ? m.cmp[0] : (typeof m.mine === 'number' ? m.mine : null)
+                      const theirVal = m.cmp ? m.cmp[1] : (typeof m.theirs === 'number' ? m.theirs : null)
+                      const winning = theirVal != null && mineVal != null && (m.better === 'higher' ? theirVal > mineVal : theirVal < mineVal)
+                      return (
+                        <div key={m.label} className={`compare-stat ${winning ? 'compare-win' : ''}`}>
+                          <span className="compare-label">{m.label}</span>
+                          <span className="compare-value">{m.theirs}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           <h2>Competition leaderboard</h2>
           <label>
@@ -1534,9 +1628,9 @@ function App() {
                       <Line
                         type="monotone"
                         dataKey="accuracy"
-                        stroke="var(--brand)"
+                        stroke="#d85a30"
                         strokeWidth={2.5}
-                        dot={{ r: 4, fill: 'var(--brand)', strokeWidth: 0 }}
+                        dot={{ r: 4, fill: '#d85a30', strokeWidth: 0 }}
                         activeDot={{ r: 6 }}
                       />
                     </LineChart>
@@ -1548,6 +1642,90 @@ function App() {
               </>
             )}
           </div>
+
+          <div className="stack">
+            <h3>Difficulty level progression (last {levelChartData.length} sessions)</h3>
+            {levelChartData.length === 0 ? (
+              <p>Complete a session to see level progression.</p>
+            ) : (
+              <div className="chart" aria-label="Level progression chart">
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={levelChartData} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+                    <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="sessionNumber"
+                      tick={{ fontSize: 12, fill: '#475569' }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                      label={{ value: 'Session', position: 'insideBottom', offset: -2, fontSize: 12, fill: '#475569' }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12, fill: '#475569' }}
+                      tickLine={false}
+                      axisLine={{ stroke: '#cbd5e1' }}
+                      width={32}
+                    />
+                    <Tooltip
+                      formatter={(value) => [value, 'Level reached']}
+                      labelFormatter={(label) => `Session ${label}`}
+                      contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="level"
+                      stroke="#0ea5e9"
+                      strokeWidth={2.5}
+                      dot={{ r: 4, fill: '#0ea5e9', strokeWidth: 0 }}
+                      activeDot={{ r: 6 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {heatmapGrid && (
+            <div className="stack">
+              <h3>Missed facts heatmap</h3>
+              <p className="chart-caption">Darker red = higher miss rate. Tap a cell to see your stats for that fact.</p>
+              <div className="heatmap-wrap" role="table" aria-label="Multiplication facts heatmap">
+                <div className="heatmap-grid">
+                  <div className="heatmap-corner" />
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <div key={i} className="heatmap-header">{i + 1}</div>
+                  ))}
+                  {Array.from({ length: 12 }, (_, rowIdx) => (
+                    <>
+                      <div key={`row-${rowIdx}`} className="heatmap-header">{rowIdx + 1}</div>
+                      {Array.from({ length: 12 }, (_, colIdx) => {
+                        const a = rowIdx + 1
+                        const b = colIdx + 1
+                        const cell = heatmapGrid[`${a}-${b}`] ?? heatmapGrid[`${b}-${a}`]
+                        const missRate = cell ? (cell.total - cell.correct) / cell.total : 0
+                        const attempted = cell ? cell.total : 0
+                        const bg = attempted === 0
+                          ? 'transparent'
+                          : `rgba(216,90,48,${(missRate * 0.85 + (attempted > 0 ? 0.08 : 0)).toFixed(2)})`
+                        return (
+                          <div
+                            key={`${rowIdx}-${colIdx}`}
+                            className="heatmap-cell"
+                            style={{ background: bg }}
+                            title={attempted === 0
+                              ? `${a}×${b} — not attempted`
+                              : `${a}×${b} — ${cell.correct}/${attempted} correct (${Math.round((cell.correct / attempted) * 100)}%)`}
+                          >
+                            {attempted > 0 ? `${a}×${b}` : ''}
+                          </div>
+                        )
+                      })}
+                    </>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <table>
             <thead>
