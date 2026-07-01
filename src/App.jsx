@@ -1549,12 +1549,13 @@ function App() {
                 )}
 
                 <h3>Leaderboard</h3>
+                <div className="table-scroll-wrap">
                 <table>
                   <thead>
                     <tr>
                       <th>#</th>
                       <th>Player</th>
-                      <th>Total correct</th>
+                      <th>Correct</th>
                       <th>Sessions</th>
                       <th>Avg time</th>
                     </tr>
@@ -1580,6 +1581,7 @@ function App() {
                     )}
                   </tbody>
                 </table>
+                </div>
 
                 <button type="button" className="ghost" onClick={() => setScreen('competitions')}>
                   Back to competitions
@@ -1675,14 +1677,16 @@ function App() {
             )
           })()}
 
+          <div className="table-scroll-wrap">
           <table>
             <thead>
               <tr>
                 <th>#</th>
                 <th>Player</th>
-                <th>Total correct</th>
+                <th>Correct</th>
                 <th>Sessions</th>
                 <th>Avg time</th>
+                <th>Accuracy</th>
                 <th></th>
               </tr>
             </thead>
@@ -1694,6 +1698,7 @@ function App() {
                   <td>{row.totalCorrect}</td>
                   <td>{row.sessionCount}</td>
                   <td>{row.avgTime === null || row.avgTime === undefined ? '-' : formatMs(row.avgTime)}</td>
+                  <td>{row.accuracyPercent != null ? `${row.accuracyPercent}%` : '-'}</td>
                   <td>
                     {row.userId !== currentUserId && (
                       <button
@@ -1709,11 +1714,12 @@ function App() {
               ))}
               {sortedAppLeaderboardRows.length === 0 && (
                 <tr>
-                  <td colSpan="6">No scores yet.</td>
+                  <td colSpan="7">No scores yet.</td>
                 </tr>
               )}
             </tbody>
           </table>
+          </div>
 
           {compareUserId && (() => {
             const me = appLeaderboardRows.find((r) => r.userId === currentUserId)
