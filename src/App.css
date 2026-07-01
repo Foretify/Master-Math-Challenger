@@ -646,30 +646,29 @@ td {
   font-size: 0.9rem;
 }
 
-/* Heatmap */
+/* Heatmap — fluid: fills container, caps at 2.5rem per cell, min 1.25rem */
 .heatmap-wrap {
-  overflow-x: auto;
+  width: 100%;
 }
 
 .heatmap-grid {
   display: grid;
-  grid-template-columns: 2rem repeat(12, 2rem);
-  gap: 2px;
-  width: max-content;
+  /* 13 equal columns: 1 row-label + 12 factor columns */
+  grid-template-columns: repeat(13, minmax(0, 1fr));
+  gap: clamp(1px, 0.3vw, 3px);
+  width: 100%;
 }
 
 .heatmap-corner {
-  width: 2rem;
-  height: 2rem;
+  aspect-ratio: 1;
 }
 
 .heatmap-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  font-size: 0.7rem;
+  aspect-ratio: 1;
+  font-size: clamp(0.45rem, 1.2vw, 0.75rem);
   font-weight: 600;
   color: #475569;
 }
@@ -678,10 +677,9 @@ td {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 4px;
-  font-size: 0.55rem;
+  aspect-ratio: 1;
+  border-radius: clamp(2px, 0.4vw, 5px);
+  font-size: clamp(0.4rem, 0.9vw, 0.6rem);
   color: #fff;
   cursor: default;
   border: 1px solid #e2e8f0;
