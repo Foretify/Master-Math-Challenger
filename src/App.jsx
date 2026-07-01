@@ -280,7 +280,7 @@ function App() {
   const auth = useAuth()
   const currentUserId = auth.user?.id ?? null
 
-  const [screen, setScreen] = useState('competitions')
+  const [screen, setScreen] = useState('dashboard')
   const [authMode, setAuthMode] = useState('login')
   const [authError, setAuthError] = useState('')
   const [authForm, setAuthForm] = useState({
@@ -910,7 +910,7 @@ function App() {
     level: s.difficultyLevelReached,
   }))
 
-  const tabs = ['competitions', 'dashboard', 'session', 'summary', 'groups', 'leaderboard', 'stats']
+  const tabs = ['dashboard', 'competitions', 'session', 'summary', 'groups', 'leaderboard', 'stats']
   if (auth.isAdmin) {
     tabs.push('admin')
   }
