@@ -113,6 +113,11 @@ function App() {
     if (appLeaderboardSort === 'sessions') {
       return [...appLeaderboardRows].sort((a, b) => b.sessionCount - a.sessionCount)
     }
+    if (appLeaderboardSort === 'accuracy') {
+      return [...appLeaderboardRows].sort((a, b) =>
+        (b.accuracyPercent ?? -1) - (a.accuracyPercent ?? -1),
+      )
+    }
     return [...appLeaderboardRows].sort((a, b) => {
       if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect
       return (a.avgTime ?? Number.POSITIVE_INFINITY) - (b.avgTime ?? Number.POSITIVE_INFINITY)
@@ -1333,16 +1338,36 @@ function App() {
             >
               Most sessions
             </button>
+            <button
+              type="button"
+              className={appLeaderboardSort === 'accuracy' ? 'active' : 'ghost'}
+              onClick={() => setAppLeaderboardSort('accuracy')}
+            >
+              Best accuracy
+            </button>
           </div>
 
           {sortedAppLeaderboardRows.length > 0 && (() => {
             const top10 = sortedAppLeaderboardRows.slice(0, 10)
+            const chartConfig = appLeaderboardSort === 'sessions'
+              ? { key: 'value', label: 'Sessions', fmt: (v) => [v, 'Sessions'] }
+              : appLeaderboardSort === 'accuracy'
+              ? { key: 'value', label: 'Accuracy %', fmt: (v) => [`${v}%`, 'Accuracy'] }
+              : { key: 'value', label: 'Total correct', fmt: (v) => [v, 'Total correct'] }
+            const chartData = top10.map((row) => ({
+              name: row.displayName,
+              value: appLeaderboardSort === 'sessions'
+                ? row.sessionCount
+                : appLeaderboardSort === 'accuracy'
+                ? (row.accuracyPercent ?? 0)
+                : row.totalCorrect,
+            }))
             return (
               <div className="stack">
-                <h3>Top {top10.length} players</h3>
+                <h3>Top {top10.length} players — {chartConfig.label}</h3>
                 <div className="chart" aria-label="Top players chart">
                   <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={top10.map((row, i) => ({ rank: i + 1, name: row.displayName, score: row.totalCorrect }))} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
+                    <LineChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 4 }}>
                       <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                       <XAxis
                         dataKey="name"
@@ -1352,19 +1377,21 @@ function App() {
                         interval={0}
                       />
                       <YAxis
+                        domain={appLeaderboardSort === 'accuracy' ? [0, 100] : ['auto', 'auto']}
+                        tickFormatter={appLeaderboardSort === 'accuracy' ? (v) => `${v}%` : undefined}
                         tick={{ fontSize: 12, fill: '#475569' }}
                         tickLine={false}
                         axisLine={{ stroke: '#cbd5e1' }}
                         width={44}
                       />
                       <Tooltip
-                        formatter={(value) => [value, 'Total correct']}
+                        formatter={chartConfig.fmt}
                         labelFormatter={(name) => `Player: ${name}`}
                         contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0' }}
                       />
                       <Line
                         type="monotone"
-                        dataKey="score"
+                        dataKey="value"
                         stroke="#d85a30"
                         strokeWidth={2.5}
                         dot={{ r: 4, fill: '#d85a30', strokeWidth: 0 }}

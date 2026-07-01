@@ -99,21 +99,38 @@ export function useCompetitions(userId) {
   }, [userId, participants, refresh])
 
   const fetchAppLeaderboard = useCallback(async () => {
-    const { data, error: rpcError } = await supabase.rpc('get_app_leaderboard')
+    const [{ data, error: rpcError }, { data: sessionRows }] = await Promise.all([
+      supabase.rpc('get_app_leaderboard'),
+      supabase.from('sessions').select('user_id, total_questions, correct_count'),
+    ])
 
     if (rpcError) {
       setError(rpcError.message)
       return []
     }
 
+    const questionTotals = {}
+    for (const s of sessionRows ?? []) {
+      if (!questionTotals[s.user_id]) questionTotals[s.user_id] = { totalQuestions: 0, totalCorrect: 0 }
+      questionTotals[s.user_id].totalQuestions += Number(s.total_questions ?? 0)
+      questionTotals[s.user_id].totalCorrect += Number(s.correct_count ?? 0)
+    }
+
     return (data ?? [])
-      .map((row) => ({
-        userId: row.user_id,
-        displayName: row.display_name,
-        totalCorrect: Number(row.total_correct),
-        sessionCount: Number(row.session_count),
-        avgTime: row.avg_time ?? null,
-      }))
+      .map((row) => {
+        const qt = questionTotals[row.user_id]
+        const accuracyPercent = qt && qt.totalQuestions > 0
+          ? Number(((qt.totalCorrect / qt.totalQuestions) * 100).toFixed(1))
+          : null
+        return {
+          userId: row.user_id,
+          displayName: row.display_name,
+          totalCorrect: Number(row.total_correct),
+          sessionCount: Number(row.session_count),
+          avgTime: row.avg_time ?? null,
+          accuracyPercent,
+        }
+      })
       .sort((a, b) => {
         if (b.totalCorrect !== a.totalCorrect) {
           return b.totalCorrect - a.totalCorrect
