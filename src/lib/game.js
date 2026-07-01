@@ -7,11 +7,12 @@ export function clampQuestionCount(count) {
 }
 
 export function clampLevel(level) {
-  return Math.max(1, Math.min(10, level))
+  return Math.max(1, Math.min(16, level))
 }
 
+// Level 1 → max factor 5, Level 16 → max factor 20 (linear)
 export function levelToFactorMax(level) {
-  return Math.min(5 + clampLevel(level) - 1, 12)
+  return Math.round(5 + (clampLevel(level) - 1) * (15 / 15))
 }
 
 export function createQuestion(level) {
